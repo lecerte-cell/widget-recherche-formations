@@ -2,242 +2,591 @@
 <html lang="fr">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Widget CMQ</title>
+  <title>Sélection du CMQ</title>
 
-    <style>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
-        body {
-            margin: 0;
-            padding: 15px;
-            font-family: Arial, sans-serif;
-        }
+  <style>
 
-        #status {
-            padding: 10px;
-            background: #f3f4f6;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        #results {
-            width: 100%;
-        }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #ffffff;
+      color: #1e1e1e;
+    }
 
-        .row {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
+    .container {
+      width: 100%;
+      padding: 20px;
+    }
 
-        .title {
-            font-weight: bold;
-        }
+    /* =====================================================
+       TITRE
+       ===================================================== */
 
-        .info {
-            color: #666;
-            font-size: 13px;
-            margin-top: 4px;
-        }
+    .title {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
 
-    </style>
+    .description {
+      margin: 0 0 18px 0;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #555;
+    }
+
+    /* =====================================================
+       MENU
+       ===================================================== */
+
+    .select-wrapper {
+      width: 100%;
+      max-width: 650px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+
+      font-size: 15px;
+      font-weight: 700;
+
+      color: #1e1e1e;
+    }
+
+    select {
+      width: 100%;
+      min-height: 48px;
+
+      padding: 10px 45px 10px 14px;
+
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 16px;
+
+      color: #1e1e1e;
+      background-color: #ffffff;
+
+      border: 1px solid #666;
+      border-radius: 0;
+
+      cursor: pointer;
+
+      appearance: none;
+      -webkit-appearance: none;
+
+      background-image:
+        linear-gradient(45deg, transparent 50%, #333 50%),
+        linear-gradient(135deg, #333 50%, transparent 50%);
+
+      background-position:
+        calc(100% - 20px) 20px,
+        calc(100% - 14px) 20px;
+
+      background-size:
+        6px 6px,
+        6px 6px;
+
+      background-repeat: no-repeat;
+    }
+
+    select:hover {
+      border-color: #333;
+    }
+
+    select:focus {
+      outline: 3px solid #8ab4f8;
+      outline-offset: 2px;
+      border-color: #333;
+    }
+
+    /* =====================================================
+       INFORMATION
+       ===================================================== */
+
+    .status {
+      margin-top: 12px;
+
+      font-size: 13px;
+      color: #666;
+    }
+
+    .selected {
+      margin-top: 18px;
+
+      padding: 12px 15px;
+
+      background: #f5f5f5;
+      border-left: 4px solid #555;
+
+      font-size: 14px;
+
+      display: none;
+    }
+
+    .selected strong {
+      font-weight: 700;
+    }
+
+    /* =====================================================
+       ERREUR
+       ===================================================== */
+
+    .error {
+      margin-top: 12px;
+
+      padding: 12px;
+
+      background: #fff3f3;
+      border: 1px solid #d33;
+
+      color: #a00;
+
+      font-size: 13px;
+
+      display: none;
+    }
+
+  </style>
 </head>
+
 
 <body>
 
-<div id="status">
-    En attente de la sélection du CMQ...
-</div>
+  <div class="container">
 
-<div id="results"></div>
+    <h1 class="title">
+      Sélectionner un CMQ
+    </h1>
+
+    <p class="description">
+      Sélectionnez un Campus des Métiers et des Qualifications
+      dans la liste ci-dessous.
+    </p>
 
 
-<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <div class="select-wrapper">
+
+      <label for="cmqSelect">
+        Campus des Métiers et des Qualifications
+      </label>
+
+      <select id="cmqSelect">
+
+        <option value="">
+          Sélectionnez un CMQ
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div id="status" class="status">
+      Chargement des données...
+    </div>
+
+
+    <div id="selected" class="selected">
+      <strong>CMQ sélectionné :</strong>
+      <span id="selectedName"></span>
+    </div>
+
+
+    <div id="error" class="error"></div>
+
+  </div>
+
 
 <script>
 
-let records = [];
+"use strict";
 
+
+/* ============================================================
+   CONFIGURATION
+   ============================================================ */
 
 /*
-============================================================
-GRIST
-============================================================
-*/
+ * Nom de la colonne contenant le nom du CMQ.
+ *
+ * Si dans ta table le nom de la colonne est différent,
+ * modifie uniquement cette ligne.
+ */
+
+const CMQ_COLUMN = "Nom du CMQ";
+
+
+/* ============================================================
+   VARIABLES
+   ============================================================ */
+
+let records = [];
+
+let cmqList = [];
+
+let currentSelection = "";
+
+
+/* ============================================================
+   ELEMENTS HTML
+   ============================================================ */
+
+const select =
+  document.getElementById("cmqSelect");
+
+const status =
+  document.getElementById("status");
+
+const selected =
+  document.getElementById("selected");
+
+const selectedName =
+  document.getElementById("selectedName");
+
+const errorBox =
+  document.getElementById("error");
+
+
+/* ============================================================
+   INITIALISATION GRIST
+   ============================================================ */
 
 grist.ready({
 
-    allowSelectBy: true,
+  /*
+   Le widget peut recevoir les données
+   provenant d'un autre widget / d'une sélection Grist.
+  */
 
-    requiredAccess: "read table"
+  allowSelectBy: true,
+
+  requiredAccess: "read table"
 
 });
 
 
-/*
-============================================================
-RECEPTION DES DONNEES
-============================================================
-*/
+/* ============================================================
+   RECEPTION DES DONNEES GRIST
+   ============================================================ */
 
 grist.onRecords(function(data) {
 
-    console.log(
-        "Données reçues de Grist :",
-        data
-    );
+  console.log(
+    "Données reçues de Grist :",
+    data
+  );
 
-    records = data || [];
 
-    afficher();
+  records = Array.isArray(data)
+    ? data
+    : [];
+
+
+  construireListeCMQ();
 
 });
 
 
-/*
-============================================================
-AFFICHAGE
-============================================================
-*/
+/* ============================================================
+   CONSTRUCTION DE LA LISTE
+   ============================================================ */
 
-function afficher() {
+function construireListeCMQ() {
 
-    const status =
-        document.getElementById("status");
-
-    const results =
-        document.getElementById("results");
+  const valeurs =
+    new Set();
 
 
-    results.innerHTML = "";
+  /*
+   On récupère uniquement les valeurs
+   réellement présentes dans les données
+   envoyées par Grist.
+  */
+
+  records.forEach(function(row) {
+
+    if (!row) {
+      return;
+    }
 
 
-    if (!records.length) {
+    const valeur =
+      row[CMQ_COLUMN];
 
-        status.textContent =
-            "Aucune donnée sélectionnée.";
 
-        return;
+    if (
+      valeur === null ||
+      valeur === undefined
+    ) {
+
+      return;
 
     }
 
 
-    status.textContent =
-        records.length +
-        " ligne(s) reçue(s) de Grist.";
+    const nom =
+      String(valeur).trim();
 
 
-    records.forEach(function(row) {
+    if (nom !== "") {
 
-        const element =
-            document.createElement("div");
+      valeurs.add(nom);
 
-        element.className = "row";
+    }
 
-
-        /*
-        On utilise les données EXISTANTES
-        envoyées par Grist.
-        */
-
-        const formation =
-            row["Nom de la formation"] || "";
+  });
 
 
-        const partenaire =
-            row["Nom du partenaire"] || "";
+  cmqList =
+    Array.from(valeurs);
 
 
-        const adresse =
-            row["adresse du partenaire"] || "";
+  /*
+   Tri alphabétique français
+  */
+
+  cmqList.sort(function(a, b) {
+
+    return a.localeCompare(
+      b,
+      "fr",
+      {
+        sensitivity: "base"
+      }
+    );
+
+  });
 
 
-        const filiere =
-            row["Filiére"] || "";
-
-
-        const cmq =
-            row["Nom du CMQ"] || "";
-
-
-        element.innerHTML = `
-
-            <div class="title">
-                ${escapeHtml(formation)}
-            </div>
-
-            <div class="info">
-                ${escapeHtml(partenaire)}
-            </div>
-
-            <div class="info">
-                ${escapeHtml(adresse)}
-            </div>
-
-            <div class="info">
-                ${escapeHtml(filiere)}
-            </div>
-
-            <div class="info">
-                CMQ : ${escapeHtml(cmq)}
-            </div>
-
-        `;
-
-
-        /*
-        Cliquer sur une ligne sélectionne
-        la ligne correspondante dans Grist.
-        */
-
-        element.addEventListener(
-            "click",
-            function() {
-
-                if (!row.id) {
-                    return;
-                }
-
-                grist.setCursorPos({
-                    rowId: row.id
-                });
-
-            }
-        );
-
-
-        results.appendChild(element);
-
-    });
+  remplirMenu();
 
 }
 
 
-/*
-============================================================
-SECURITE HTML
-============================================================
-*/
+/* ============================================================
+   REMPLISSAGE DU MENU
+   ============================================================ */
 
-function escapeHtml(value) {
+function remplirMenu() {
 
-    return String(value ?? "")
-        .replace(/[&<>"']/g, function(char) {
+  /*
+   On vide le menu.
+  */
 
-            return {
+  select.innerHTML = "";
 
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#039;"
 
-            }[char];
+  /*
+   Première option.
+  */
 
+  const defaultOption =
+    document.createElement("option");
+
+  defaultOption.value = "";
+
+  defaultOption.textContent =
+    "Sélectionnez un CMQ";
+
+  select.appendChild(
+    defaultOption
+  );
+
+
+  /*
+   Ajout des CMQ.
+  */
+
+  cmqList.forEach(function(cmq) {
+
+    const option =
+      document.createElement("option");
+
+
+    option.value =
+      cmq;
+
+
+    option.textContent =
+      cmq;
+
+
+    select.appendChild(
+      option
+    );
+
+  });
+
+
+  /*
+   Informations.
+  */
+
+  if (cmqList.length === 0) {
+
+    status.textContent =
+      "Aucun CMQ disponible.";
+
+  }
+
+  else {
+
+    status.textContent =
+      cmqList.length +
+      " CMQ disponible(s).";
+
+  }
+
+}
+
+
+/* ============================================================
+   SELECTION D'UN CMQ
+   ============================================================ */
+
+select.addEventListener(
+  "change",
+  async function() {
+
+    const valeur =
+      select.value;
+
+
+    currentSelection =
+      valeur;
+
+
+    /*
+     Aucun CMQ sélectionné.
+    */
+
+    if (!valeur) {
+
+      selected.style.display =
+        "none";
+
+      return;
+
+    }
+
+
+    /*
+     Affichage.
+    */
+
+    selectedName.textContent =
+      valeur;
+
+    selected.style.display =
+      "block";
+
+
+    console.log(
+      "CMQ sélectionné :",
+      valeur
+    );
+
+
+    /*
+     On cherche la ligne correspondante
+     dans les données reçues de Grist.
+    */
+
+    const row =
+      records.find(function(record) {
+
+        return String(
+          record[CMQ_COLUMN] ?? ""
+        ).trim() === valeur;
+
+      });
+
+
+    /*
+     Si une ligne correspondante existe,
+     on sélectionne cette ligne dans Grist.
+    */
+
+    if (
+      row &&
+      row.id
+    ) {
+
+      try {
+
+        await grist.setCursorPos({
+          rowId: row.id
         });
 
+        console.log(
+          "Ligne Grist sélectionnée :",
+          row.id
+        );
+
+      }
+
+      catch (error) {
+
+        console.error(
+          "Erreur lors de la sélection Grist :",
+          error
+        );
+
+        afficherErreur(
+          "Impossible de sélectionner la ligne dans Grist."
+        );
+
+      }
+
+    }
+
+    else {
+
+      console.log(
+        "Aucune ligne correspondant au CMQ."
+      );
+
+    }
+
+  }
+);
+
+
+/* ============================================================
+   GESTION DES ERREURS
+   ============================================================ */
+
+function afficherErreur(message) {
+
+  errorBox.textContent =
+    message;
+
+  errorBox.style.display =
+    "block";
+
 }
+
+
+/* ============================================================
+   MESSAGE INITIAL
+   ============================================================ */
+
+status.textContent =
+  "En attente des données Grist...";
+
 
 </script>
 
