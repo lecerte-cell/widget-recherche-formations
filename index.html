@@ -10,7 +10,7 @@
     content="width=device-width,initial-scale=1"
   >
 
-  <title>Recherche de formations – Grist</title>
+  <title>Recherche – Formations / CMQ</title>
 
 
   <!-- =====================================================
@@ -56,11 +56,13 @@
 
       overflow: hidden;
 
+      background: #fff;
+
     }
 
 
     /* =====================================================
-       BARRE DE RECHERCHE
+       BARRE SUPERIEURE
     ====================================================== */
 
     #top {
@@ -70,6 +72,8 @@
       border-bottom: 1px solid #ddd;
 
       background: white;
+
+      z-index: 1000;
 
     }
 
@@ -112,6 +116,13 @@
     }
 
 
+    #mode {
+
+      min-width: 190px;
+
+    }
+
+
     #formation {
 
       flex: 2;
@@ -130,6 +141,13 @@
     }
 
 
+    #distance {
+
+      width: 115px;
+
+    }
+
+
     #filiere {
 
       flex: 1;
@@ -143,14 +161,7 @@
 
       flex: 1;
 
-      min-width: 170px;
-
-    }
-
-
-    #distance {
-
-      width: 115px;
+      min-width: 190px;
 
     }
 
@@ -215,7 +226,7 @@
 
       width: 42%;
 
-      min-width: 330px;
+      min-width: 340px;
 
       overflow: auto;
 
@@ -259,11 +270,13 @@
     }
 
 
-    .title {
+    .card-title {
 
       font-weight: bold;
 
       margin-bottom: 5px;
+
+      line-height: 1.3;
 
     }
 
@@ -274,7 +287,7 @@
 
       color: #666;
 
-      line-height: 1.45;
+      line-height: 1.5;
 
     }
 
@@ -292,7 +305,7 @@
 
       display: inline-block;
 
-      padding: 2px 7px;
+      padding: 3px 8px;
 
       border-radius: 12px;
 
@@ -302,7 +315,25 @@
 
       font-size: 11px;
 
-      margin: 4px 3px 0 0;
+      margin: 5px 4px 0 0;
+
+    }
+
+
+    .pill.cmq {
+
+      background: #ecfdf5;
+
+      color: #047857;
+
+    }
+
+
+    .pill.formation {
+
+      background: #eef2ff;
+
+      color: #3730a3;
 
     }
 
@@ -311,7 +342,9 @@
 
       font-weight: bold;
 
-      margin-bottom: 5px;
+      margin-bottom: 6px;
+
+      line-height: 1.3;
 
     }
 
@@ -320,7 +353,24 @@
 
       font-size: 12px;
 
-      margin: 3px 0;
+      margin: 4px 0;
+
+    }
+
+
+    .popup-type {
+
+      display: inline-block;
+
+      margin-top: 6px;
+
+      padding: 3px 7px;
+
+      border-radius: 10px;
+
+      font-size: 11px;
+
+      background: #eee;
 
     }
 
@@ -342,7 +392,9 @@
 
         width: 100%;
 
-        height: 42%;
+        height: 45%;
+
+        min-width: 0;
 
         border-right: 0;
 
@@ -353,7 +405,7 @@
 
       #map {
 
-        height: 58%;
+        height: 55%;
 
       }
 
@@ -368,19 +420,43 @@
 
 
 <!-- =====================================================
-     BARRE DE RECHERCHE
+     RECHERCHE
 ====================================================== -->
 
 <div id="top">
 
   <div class="row">
 
+
+    <!-- SOURCE -->
+
+    <select id="mode">
+
+      <option value="all">
+        Toutes les données
+      </option>
+
+      <option value="formations">
+        Formations
+      </option>
+
+      <option value="cmq">
+        Partenaires / CMQ
+      </option>
+
+    </select>
+
+
+    <!-- RECHERCHE -->
+
     <input
       id="formation"
       type="search"
-      placeholder="🔎 Formation, mot-clé…"
+      placeholder="🔎 Formation, partenaire, CMQ…"
     >
 
+
+    <!-- LIEU -->
 
     <input
       id="lieu"
@@ -388,6 +464,8 @@
       placeholder="📍 Ville, adresse…"
     >
 
+
+    <!-- DISTANCE -->
 
     <select id="distance">
 
@@ -421,6 +499,8 @@
     </select>
 
 
+    <!-- FILIERE -->
+
     <select id="filiere">
 
       <option value="">
@@ -430,14 +510,18 @@
     </select>
 
 
+    <!-- TYPE -->
+
     <select id="type">
 
       <option value="">
-        Tous les établissements
+        Toutes les catégories
       </option>
 
     </select>
 
+
+    <!-- BOUTONS -->
 
     <button id="searchBtn">
       Rechercher
@@ -451,11 +535,12 @@
       Réinitialiser
     </button>
 
+
   </div>
 
 
   <div id="status">
-    Connexion aux données Grist…
+    Chargement des données Grist…
   </div>
 
 </div>
@@ -467,16 +552,18 @@
 
 <div id="content">
 
+
   <div id="results">
 
     <div class="empty">
-      Chargement des formations…
+      Chargement…
     </div>
 
   </div>
 
 
   <div id="map"></div>
+
 
 </div>
 
@@ -498,88 +585,102 @@
 
 
   /* =====================================================
-     CONFIGURATION DU WIDGET GRIST
-     
-     Ces noms sont les noms INTERNES utilisés par le code.
-     Grist permettra de choisir les vraies colonnes.
+     TABLES GRIST
   ====================================================== */
 
-  const COLUMN_CONFIG = [
+  const TABLE_FORMATIONS = "Carte2_2";
 
-    {
-      name: "formation",
-      title: "Formation",
-      optional: false
-    },
+  const TABLE_CMQ = "CMQ";
 
-    {
-      name: "filiere",
-      title: "Filière",
-      optional: true
-    },
 
-    {
-      name: "partenaire",
-      title: "Nom du partenaire",
-      optional: true
-    },
+  /* =====================================================
+     COLONNES CARTE2_2
+  ====================================================== */
 
-    {
-      name: "cmq",
-      title: "Nom du CMQ",
-      optional: true
-    },
+  const FORMATION_COL = {
 
-    {
-      name: "type",
-      title: "Catégorie établissement",
-      optional: true
-    },
+    formation:
+      "Nom_de_la_formation",
 
-    {
-      name: "adresse",
-      title: "Adresse",
-      optional: true
-    },
+    partenaire:
+      "Nom_du_partenaire",
 
-    {
-      name: "latitude",
-      title: "Latitude",
-      optional: false
-    },
+    cmq:
+      "Nom_du_CMQ",
 
-    {
-      name: "longitude",
-      title: "Longitude",
-      optional: false
-    },
+    adresse:
+      "adresse_du_partenaire",
 
-    {
-      name: "site",
-      title: "Site internet",
-      optional: true
-    },
+    latitude:
+      "LATITUDE_CARTE",
 
-    {
-      name: "afficher",
-      title: "Afficher sur carte",
-      optional: true
-    }
+    longitude:
+      "LONGITUDE_CARTE",
 
-  ];
+    filiere:
+      "Filiere",
+
+    type:
+      "Categorie_etablissement",
+
+    site:
+      "Site_internet",
+
+    afficher:
+      "Afficher_sur_carte"
+
+  };
+
+
+  /* =====================================================
+     COLONNES CMQ
+  ====================================================== */
+
+  const CMQ_COL = {
+
+    formation:
+      "Nom_de_la_formation",
+
+    partenaire:
+      "Nom_du_partenaire",
+
+    cmq:
+      "Nom_du_CMQ",
+
+    adresse:
+      "adresse_du_partenaire",
+
+    latitude:
+      "LATITUDE",
+
+    longitude:
+      "LONGITUDE",
+
+    filiere:
+      "Filiere",
+
+    type:
+      "Categorie_etablissement",
+
+    site:
+      "Site_internet"
+
+  };
 
 
   /* =====================================================
      VARIABLES
   ====================================================== */
 
+  let formations = [];
+
+  let cmqRows = [];
+
   let rows = [];
 
   let filtered = [];
 
   let searchPoint = null;
-
-  let mappings = null;
 
 
   /* =====================================================
@@ -590,8 +691,11 @@
 
     L.map("map")
       .setView(
+
         [46.6, 2.4],
+
         6
+
       );
 
 
@@ -612,7 +716,9 @@
 
 
   const markers =
-    L.layerGroup().addTo(map);
+
+    L.layerGroup()
+      .addTo(map);
 
 
   /* =====================================================
@@ -630,8 +736,11 @@
       .normalize("NFD")
 
       .replace(
+
         /[\u0300-\u036f]/g,
+
         ""
+
       )
 
       .toLowerCase()
@@ -644,9 +753,13 @@
   function num(value) {
 
     if (
+
       value === null ||
+
       value === undefined ||
+
       value === ""
+
     ) {
 
       return NaN;
@@ -666,6 +779,37 @@
 
   }
 
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+
+      .replace(
+
+        /[&<>"']/g,
+
+        character => ({
+
+          "&": "&amp;",
+
+          "<": "&lt;",
+
+          ">": "&gt;",
+
+          '"': "&quot;",
+
+          "'": "&#039;"
+
+        }[character])
+
+      );
+
+  }
+
+
+  /* =====================================================
+     DISTANCE
+  ====================================================== */
 
   function distanceKm(
 
@@ -708,7 +852,9 @@
       R *
 
       Math.asin(
+
         Math.sqrt(h)
+
       )
 
     );
@@ -716,179 +862,166 @@
   }
 
 
-  function escapeHtml(value) {
+  /* =====================================================
+     NORMALISATION CARTE2_2
+  ====================================================== */
 
-    return String(value ?? "")
+  function normalizeFormation(row) {
 
-      .replace(
+    return {
 
-        /[&<>"']/g,
+      source:
+        "formations",
 
-        character => ({
+      table:
+        TABLE_FORMATIONS,
 
-          "&": "&amp;",
+      id:
+        row.id,
 
-          "<": "&lt;",
+      formation:
+        row[
+          FORMATION_COL.formation
+        ],
 
-          ">": "&gt;",
+      partenaire:
+        row[
+          FORMATION_COL.partenaire
+        ],
 
-          '"': "&quot;",
+      cmq:
+        row[
+          FORMATION_COL.cmq
+        ],
 
-          "'": "&#039;"
+      adresse:
+        row[
+          FORMATION_COL.adresse
+        ],
 
-        }[character])
+      latitude:
+        row[
+          FORMATION_COL.latitude
+        ],
 
-      );
+      longitude:
+        row[
+          FORMATION_COL.longitude
+        ],
+
+      filiere:
+        row[
+          FORMATION_COL.filiere
+        ],
+
+      type:
+        row[
+          FORMATION_COL.type
+        ],
+
+      site:
+        row[
+          FORMATION_COL.site
+        ],
+
+      afficher:
+        row[
+          FORMATION_COL.afficher
+        ]
+
+    };
 
   }
 
 
   /* =====================================================
-     RECUPERATION D'UNE COLONNE MAPPÉE
+     NORMALISATION CMQ
   ====================================================== */
 
-  function mappedValue(row, name) {
+  function normalizeCMQ(row) {
 
-    if (!row) {
+    return {
 
-      return "";
+      source:
+        "cmq",
 
-    }
+      table:
+        TABLE_CMQ,
 
+      id:
+        row.id,
 
-    /*
-      Si Grist nous donne un mapping,
-      on utilise le vrai nom de colonne.
-    */
+      formation:
+        row[
+          CMQ_COL.formation
+        ],
 
-    const realColumn =
-      mappings &&
-      mappings[name];
+      partenaire:
+        row[
+          CMQ_COL.partenaire
+        ],
 
+      cmq:
+        row[
+          CMQ_COL.cmq
+        ],
 
-    if (
-      realColumn &&
-      typeof realColumn === "string"
-    ) {
+      adresse:
+        row[
+          CMQ_COL.adresse
+        ],
 
-      return row[realColumn];
+      latitude:
+        row[
+          CMQ_COL.latitude
+        ],
 
-    }
+      longitude:
+        row[
+          CMQ_COL.longitude
+        ],
 
+      filiere:
+        row[
+          CMQ_COL.filiere
+        ],
 
-    /*
-      Fallback :
-      si le mapping n'est pas encore disponible,
-      on tente le nom logique.
-    */
+      type:
+        row[
+          CMQ_COL.type
+        ],
 
-    return row[name];
+      site:
+        row[
+          CMQ_COL.site
+        ],
+
+      afficher:
+        true
+
+    };
 
   }
 
 
   /* =====================================================
-     NORMALISATION DES LIGNES
+     AFFICHAGE CARTE2_2
   ====================================================== */
 
-  function normalizeRows(records, columnMappings) {
-
-    mappings =
-      columnMappings || null;
-
-
-    return records.map(record => {
-
-      return {
-
-        id: record.id,
-
-        formation:
-          mappedValue(
-            record,
-            "formation"
-          ),
-
-        filiere:
-          mappedValue(
-            record,
-            "filiere"
-          ),
-
-        partenaire:
-          mappedValue(
-            record,
-            "partenaire"
-          ),
-
-        cmq:
-          mappedValue(
-            record,
-            "cmq"
-          ),
-
-        type:
-          mappedValue(
-            record,
-            "type"
-          ),
-
-        adresse:
-          mappedValue(
-            record,
-            "adresse"
-          ),
-
-        latitude:
-          mappedValue(
-            record,
-            "latitude"
-          ),
-
-        longitude:
-          mappedValue(
-            record,
-            "longitude"
-          ),
-
-        site:
-          mappedValue(
-            record,
-            "site"
-          ),
-
-        afficher:
-          mappedValue(
-            record,
-            "afficher"
-          )
-
-      };
-
-    });
-
-  }
-
-
-  /* =====================================================
-     AFFICHAGE SUR CARTE
-  ====================================================== */
-
-  function isVisible(row) {
+  function isFormationVisible(row) {
 
     const value =
       row.afficher;
 
 
-    /*
-      Si la colonne "Afficher sur carte"
-      n'est pas renseignée, on affiche.
-    */
-
     if (
+
       value === undefined ||
+
       value === null ||
+
       value === ""
+
     ) {
 
       return true;
@@ -919,18 +1052,44 @@
 
 
   /* =====================================================
-     FORMATION EXISTANTE
+     FILTRE DE SOURCE
   ====================================================== */
 
-  function hasFormation(row) {
+  function rebuildRows() {
 
-    return (
+    const mode =
+      $("mode").value;
 
-      String(
-        row.formation ?? ""
-      ).trim() !== ""
 
-    );
+    if (mode === "formations") {
+
+      rows =
+        formations.filter(
+          isFormationVisible
+        );
+
+    }
+
+    else if (mode === "cmq") {
+
+      rows =
+        [...cmqRows];
+
+    }
+
+    else {
+
+      rows = [
+
+        ...formations.filter(
+          isFormationVisible
+        ),
+
+        ...cmqRows
+
+      ];
+
+    }
 
   }
 
@@ -940,12 +1099,6 @@
   ====================================================== */
 
   function populateFilters() {
-
-    /*
-      On vide d'abord les anciennes options.
-      Cela évite les doublons lorsque Grist
-      actualise les données.
-    */
 
     $("filiere").innerHTML =
 
@@ -960,7 +1113,7 @@
 
       '<option value="">' +
 
-      'Tous les établissements' +
+      'Toutes les catégories' +
 
       '</option>';
 
@@ -974,9 +1127,9 @@
           rows
 
             .map(
-              r =>
+              row =>
                 String(
-                  r.filiere ?? ""
+                  row.filiere ?? ""
                 ).trim()
             )
 
@@ -1004,9 +1157,9 @@
           rows
 
             .map(
-              r =>
+              row =>
                 String(
-                  r.type ?? ""
+                  row.type ?? ""
                 ).trim()
             )
 
@@ -1025,52 +1178,56 @@
       );
 
 
-    for (
-      const value of filieres
-    ) {
+    filieres.forEach(
+      value => {
 
-      const option =
-        document.createElement(
-          "option"
-        );
-
-
-      option.value =
-        value;
+        const option =
+          document.createElement(
+            "option"
+          );
 
 
-      option.textContent =
-        value;
+        option.value =
+          value;
 
 
-      $("filiere")
-        .appendChild(option);
-
-    }
+        option.textContent =
+          value;
 
 
-    for (
-      const value of types
-    ) {
+        $("filiere")
+          .appendChild(
+            option
+          );
 
-      const option =
-        document.createElement(
-          "option"
-        );
-
-
-      option.value =
-        value;
+      }
+    );
 
 
-      option.textContent =
-        value;
+    types.forEach(
+      value => {
+
+        const option =
+          document.createElement(
+            "option"
+          );
 
 
-      $("type")
-        .appendChild(option);
+        option.value =
+          value;
 
-    }
+
+        option.textContent =
+          value;
+
+
+        $("type")
+          .appendChild(
+            option
+          );
+
+      }
+    );
 
   }
 
@@ -1084,18 +1241,166 @@
     distance
   ) {
 
-    let site = "";
+    const sourceLabel =
+
+      row.source === "formations"
+
+        ? "Formation"
+
+        : "Partenaire / CMQ";
+
+
+    let html = "";
+
+
+    html +=
+
+      '<div class="popup-title">' +
+
+      escapeHtml(
+        row.formation ||
+        row.partenaire ||
+        row.cmq ||
+        "Sans nom"
+      ) +
+
+      '</div>';
+
+
+    html +=
+
+      '<div class="popup-line">' +
+
+      '<span class="popup-type">' +
+
+      escapeHtml(
+        sourceLabel
+      ) +
+
+      '</span>' +
+
+      '</div>';
+
+
+    if (
+      row.partenaire
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        '🏫 ' +
+
+        escapeHtml(
+          row.partenaire
+        ) +
+
+        '</div>';
+
+    }
+
+
+    if (
+      row.cmq
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        '🎓 ' +
+
+        escapeHtml(
+          row.cmq
+        ) +
+
+        '</div>';
+
+    }
+
+
+    if (
+      row.adresse
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        '📍 ' +
+
+        escapeHtml(
+          row.adresse
+        ) +
+
+        '</div>';
+
+    }
+
+
+    if (
+      row.filiere
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        'Filière : ' +
+
+        escapeHtml(
+          row.filiere
+        ) +
+
+        '</div>';
+
+    }
+
+
+    if (
+      row.type
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        'Établissement : ' +
+
+        escapeHtml(
+          row.type
+        ) +
+
+        '</div>';
+
+    }
+
+
+    if (
+      distance !== null
+    ) {
+
+      html +=
+
+        '<div class="popup-line">' +
+
+        '📏 ' +
+
+        distance.toFixed(1) +
+
+        ' km' +
+
+        '</div>';
+
+    }
 
 
     if (
       row.site
     ) {
 
-      const url =
-        String(row.site);
-
-
-      site =
+      html +=
 
         '<div class="popup-line">' +
 
@@ -1103,7 +1408,9 @@
 
         '<a href="' +
 
-        escapeHtml(url) +
+        escapeHtml(
+          String(row.site)
+        ) +
 
         '" target="_blank" rel="noopener">' +
 
@@ -1116,156 +1423,7 @@
     }
 
 
-    return
-
-      '<div class="popup-title">' +
-
-      escapeHtml(
-        row.formation
-      ) +
-
-      '</div>' +
-
-
-      (
-
-        row.partenaire
-
-          ?
-
-          '<div class="popup-line">' +
-
-          '🏫 ' +
-
-          escapeHtml(
-            row.partenaire
-          ) +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      (
-
-        row.adresse
-
-          ?
-
-          '<div class="popup-line">' +
-
-          '📍 ' +
-
-          escapeHtml(
-            row.adresse
-          ) +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      (
-
-        row.cmq
-
-          ?
-
-          '<div class="popup-line">' +
-
-          '🎓 ' +
-
-          escapeHtml(
-            row.cmq
-          ) +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      (
-
-        row.filiere
-
-          ?
-
-          '<div class="popup-line">' +
-
-          'Filière : ' +
-
-          escapeHtml(
-            row.filiere
-          ) +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      (
-
-        row.type
-
-          ?
-
-          '<div class="popup-line">' +
-
-          'Établissement : ' +
-
-          escapeHtml(
-            row.type
-          ) +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      (
-
-        distance !== null
-
-          ?
-
-          '<div class="popup-line">' +
-
-          '📏 ' +
-
-          distance.toFixed(1) +
-
-          ' km' +
-
-          '</div>'
-
-          :
-
-          ""
-
-      ) +
-
-
-      site;
+    return html;
 
   }
 
@@ -1278,18 +1436,15 @@
 
     try {
 
-      if (
-        row &&
-        row.id !== undefined
-      ) {
+      await grist.setCursorPos({
 
-        await grist.setCursorPos({
+        tableId:
+          row.table,
 
-          rowId: row.id
+        rowId:
+          row.id
 
-        });
-
-      }
+      });
 
     }
 
@@ -1309,15 +1464,12 @@
 
 
   /* =====================================================
-     AFFICHAGE
+     RENDU
   ====================================================== */
 
   function render() {
 
     markers.clearLayers();
-
-
-    const bounds = [];
 
 
     const list =
@@ -1327,247 +1479,54 @@
     list.innerHTML = "";
 
 
-    /* ---------------------------------------------------
-       RESULTATS
-    --------------------------------------------------- */
+    const bounds = [];
 
-    filtered.forEach(row => {
 
-      const lat =
-        num(row.latitude);
+    filtered.forEach(
+      row => {
 
+        const lat =
+          num(row.latitude);
 
-      const lon =
-        num(row.longitude);
 
+        const lon =
+          num(row.longitude);
 
-      let distance = null;
 
+        let distance =
+          null;
 
-      if (
 
-        searchPoint &&
+        if (
 
-        Number.isFinite(lat) &&
+          searchPoint &&
 
-        Number.isFinite(lon)
+          Number.isFinite(lat) &&
 
-      ) {
+          Number.isFinite(lon)
 
-        distance =
+        ) {
 
-          distanceKm(
+          distance =
 
-            searchPoint[0],
+            distanceKm(
 
-            searchPoint[1],
+              searchPoint[0],
 
-            lat,
+              searchPoint[1],
 
-            lon
+              lat,
 
-          );
+              lon
 
-      }
+            );
 
+        }
 
-      /* -------------------------------------------------
-         MARQUEUR
-      ------------------------------------------------- */
 
-      if (
-
-        Number.isFinite(lat) &&
-
-        Number.isFinite(lon)
-
-      ) {
-
-        const marker =
-
-          L.marker([
-
-            lat,
-
-            lon
-
-          ]);
-
-
-        marker.bindPopup(
-
-          popup(
-            row,
-            distance
-          )
-
-        );
-
-
-        marker.on(
-
-          "click",
-
-          () =>
-            selectRow(row)
-
-        );
-
-
-        marker.addTo(
-          markers
-        );
-
-
-        bounds.push([
-
-          lat,
-
-          lon
-
-        ]);
-
-      }
-
-
-      /* -------------------------------------------------
-         CARTE RESULTAT
-      ------------------------------------------------- */
-
-      const card =
-        document.createElement(
-          "div"
-        );
-
-
-      card.className =
-        "card";
-
-
-      let html = "";
-
-
-      html +=
-
-        '<div class="title">' +
-
-        escapeHtml(
-          row.formation
-        ) +
-
-        '</div>';
-
-
-      html +=
-
-        '<div class="meta">';
-
-
-      if (
-        row.partenaire
-      ) {
-
-        html +=
-
-          '<b>' +
-
-          escapeHtml(
-            row.partenaire
-          ) +
-
-          '</b>';
-
-      }
-
-
-      if (
-        row.adresse
-      ) {
-
-        html +=
-
-          '<br>' +
-
-          escapeHtml(
-            row.adresse
-          );
-
-      }
-
-
-      if (
-        row.cmq
-      ) {
-
-        html +=
-
-          '<br>' +
-
-          escapeHtml(
-            row.cmq
-          );
-
-      }
-
-
-      if (
-        distance !== null
-      ) {
-
-        html +=
-
-          '<br>📏 ' +
-
-          distance.toFixed(1) +
-
-          ' km';
-
-      }
-
-
-      html +=
-        '</div>';
-
-
-      if (
-        row.filiere
-      ) {
-
-        html +=
-
-          '<span class="pill">' +
-
-          escapeHtml(
-            row.filiere
-          ) +
-
-          '</span>';
-
-      }
-
-
-      if (
-        row.type
-      ) {
-
-        html +=
-
-          '<span class="pill">' +
-
-          escapeHtml(
-            row.type
-          ) +
-
-          '</span>';
-
-      }
-
-
-      card.innerHTML =
-        html;
-
-
-      card.onclick = () => {
+        /* ===============================================
+           MARQUEUR
+        ================================================ */
 
         if (
 
@@ -1577,32 +1536,296 @@
 
         ) {
 
-          map.setView(
+          const marker =
 
-            [lat, lon],
+            L.marker([
 
-            15
+              lat,
+
+              lon
+
+            ]);
+
+
+          marker.bindPopup(
+
+            popup(
+              row,
+              distance
+            )
 
           );
+
+
+          marker.on(
+
+            "click",
+
+            () => {
+
+              selectRow(row);
+
+            }
+
+          );
+
+
+          marker.addTo(
+            markers
+          );
+
+
+          bounds.push([
+
+            lat,
+
+            lon
+
+          ]);
 
         }
 
 
-        selectRow(row);
+        /* ===============================================
+           CARTE RESULTAT
+        ================================================ */
 
-      };
-
-
-      list.appendChild(
-        card
-      );
-
-    });
+        const card =
+          document.createElement(
+            "div"
+          );
 
 
-    /* -------------------------------------------------
+        card.className =
+          "card";
+
+
+        let html = "";
+
+
+        const title =
+
+          row.source === "formations"
+
+            ? row.formation
+
+            : (
+
+                row.partenaire ||
+
+                row.cmq ||
+
+                row.formation
+
+              );
+
+
+        html +=
+
+          '<div class="card-title">' +
+
+          escapeHtml(
+            title
+          ) +
+
+          '</div>';
+
+
+        html +=
+
+          '<div class="meta">';
+
+
+        if (
+          row.source === "formations"
+        ) {
+
+          html +=
+
+            '<b>Formation</b>';
+
+
+          if (
+            row.partenaire
+          ) {
+
+            html +=
+
+              '<br>🏫 ' +
+
+              escapeHtml(
+                row.partenaire
+              );
+
+          }
+
+        }
+
+        else {
+
+          html +=
+
+            '<b>Partenaire / CMQ</b>';
+
+
+          if (
+            row.cmq
+          ) {
+
+            html +=
+
+              '<br>🎓 ' +
+
+              escapeHtml(
+                row.cmq
+              );
+
+          }
+
+        }
+
+
+        if (
+          row.adresse
+        ) {
+
+          html +=
+
+            '<br>📍 ' +
+
+            escapeHtml(
+              row.adresse
+            );
+
+        }
+
+
+        if (
+          distance !== null
+        ) {
+
+          html +=
+
+            '<br>📏 ' +
+
+            distance.toFixed(1) +
+
+            ' km';
+
+        }
+
+
+        html +=
+          '</div>';
+
+
+        /* =============================================
+           PILL SOURCE
+        ============================================== */
+
+        if (
+          row.source === "formations"
+        ) {
+
+          html +=
+
+            '<span class="pill formation">' +
+
+            'Formation' +
+
+            '</span>';
+
+        }
+
+        else {
+
+          html +=
+
+            '<span class="pill cmq">' +
+
+            'Partenaire / CMQ' +
+
+            '</span>';
+
+        }
+
+
+        if (
+          row.filiere
+        ) {
+
+          html +=
+
+            '<span class="pill">' +
+
+            escapeHtml(
+              row.filiere
+            ) +
+
+            '</span>';
+
+        }
+
+
+        if (
+          row.type
+        ) {
+
+          html +=
+
+            '<span class="pill">' +
+
+            escapeHtml(
+              row.type
+            ) +
+
+            '</span>';
+
+        }
+
+
+        card.innerHTML =
+          html;
+
+
+        card.onclick = () => {
+
+          if (
+
+            Number.isFinite(lat) &&
+
+            Number.isFinite(lon)
+
+          ) {
+
+            map.setView(
+
+              [lat, lon],
+
+              15
+
+            );
+
+          }
+
+
+          selectRow(row);
+
+        };
+
+
+        list.appendChild(
+          card
+        );
+
+      }
+
+    );
+
+
+    /* =================================================
        AUCUN RESULTAT
-    ------------------------------------------------- */
+    ================================================== */
 
     if (
       !filtered.length
@@ -1612,16 +1835,16 @@
 
         '<div class="empty">' +
 
-        'Aucune formation ne correspond à votre recherche.' +
+        'Aucun résultat ne correspond à votre recherche.' +
 
         '</div>';
 
     }
 
 
-    /* -------------------------------------------------
-       ZOOM
-    ------------------------------------------------- */
+    /* =================================================
+       ZOOM AUTOMATIQUE
+    ================================================== */
 
     if (
 
@@ -1649,34 +1872,38 @@
     }
 
 
-    /* -------------------------------------------------
+    /* =================================================
        STATUT
-    ------------------------------------------------- */
+    ================================================== */
+
+    let label =
+      "résultat";
+
+
+    if (
+      filtered.length > 1
+    ) {
+
+      label =
+        "résultats";
+
+    }
+
 
     $("status").textContent =
 
       filtered.length +
 
-      " formation" +
+      " " +
+
+      label +
+
+      " affiché" +
 
       (
 
         filtered.length > 1
-
           ? "s"
-
-          : ""
-
-      ) +
-
-      " trouvée" +
-
-      (
-
-        filtered.length > 1
-
-          ? "s"
-
           : ""
 
       );
@@ -1685,7 +1912,7 @@
 
 
   /* =====================================================
-     GEOCODAGE
+     RECHERCHE GEOGRAPHIQUE
   ====================================================== */
 
   async function geocode() {
@@ -1732,6 +1959,7 @@
     try {
 
       const response =
+
         await fetch(
 
           url,
@@ -1755,8 +1983,11 @@
       ) {
 
         throw new Error(
+
           "Erreur HTTP " +
+
           response.status
+
         );
 
       }
@@ -1844,24 +2075,28 @@
 
 
     const query =
+
       norm(
         $("formation").value
       );
 
 
     const filiere =
+
       norm(
         $("filiere").value
       );
 
 
     const type =
+
       norm(
         $("type").value
       );
 
 
     const radius =
+
       num(
         $("distance").value
       );
@@ -1869,140 +2104,40 @@
 
     filtered =
 
-      rows.filter(row => {
+      rows.filter(
+        row => {
 
 
-        /* ------------------------------------------------
-           FORMATION
-        ------------------------------------------------ */
+          /* ============================================
+             TEXTE
+          ============================================= */
 
-        if (
-          !hasFormation(row)
-        ) {
+          const text =
 
-          return false;
+            norm([
 
-        }
+              row.formation,
 
+              row.partenaire,
 
-        /* ------------------------------------------------
-           AFFICHAGE
-        ------------------------------------------------ */
+              row.cmq,
 
-        if (
-          !isVisible(row)
-        ) {
+              row.adresse,
 
-          return false;
+              row.filiere,
 
-        }
+              row.type
 
-
-        /* ------------------------------------------------
-           RECHERCHE TEXTE
-        ------------------------------------------------ */
-
-        const text =
-
-          norm([
-
-            row.formation,
-
-            row.partenaire,
-
-            row.filiere,
-
-            row.cmq,
-
-            row.adresse,
-
-            row.type
-
-          ].join(" "));
-
-
-        if (
-
-          query &&
-
-          !text.includes(
-            query
-          )
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ------------------------------------------------
-           FILIERE
-        ------------------------------------------------ */
-
-        if (
-
-          filiere &&
-
-          norm(
-            row.filiere
-          ) !== filiere
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ------------------------------------------------
-           TYPE
-        ------------------------------------------------ */
-
-        if (
-
-          type &&
-
-          norm(
-            row.type
-          ) !== type
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ------------------------------------------------
-           RAYON
-        ------------------------------------------------ */
-
-        if (
-
-          searchPoint &&
-
-          radius > 0
-
-        ) {
-
-          const lat =
-            num(
-              row.latitude
-            );
-
-
-          const lon =
-            num(
-              row.longitude
-            );
+            ].join(" "));
 
 
           if (
 
-            !Number.isFinite(lat) ||
+            query &&
 
-            !Number.isFinite(lon)
+            !text.includes(
+              query
+            )
 
           ) {
 
@@ -2011,35 +2146,114 @@
           }
 
 
-          const distance =
-
-            distanceKm(
-
-              searchPoint[0],
-
-              searchPoint[1],
-
-              lat,
-
-              lon
-
-            );
-
+          /* ============================================
+             FILIERE
+          ============================================= */
 
           if (
-            distance > radius
+
+            filiere &&
+
+            norm(
+              row.filiere
+            ) !== filiere
+
           ) {
 
             return false;
 
           }
 
+
+          /* ============================================
+             TYPE
+          ============================================= */
+
+          if (
+
+            type &&
+
+            norm(
+              row.type
+            ) !== type
+
+          ) {
+
+            return false;
+
+          }
+
+
+          /* ============================================
+             RAYON
+          ============================================= */
+
+          if (
+
+            searchPoint &&
+
+            radius > 0
+
+          ) {
+
+            const lat =
+              num(
+                row.latitude
+              );
+
+
+            const lon =
+              num(
+                row.longitude
+              );
+
+
+            if (
+
+              !Number.isFinite(lat) ||
+
+              !Number.isFinite(lon)
+
+            ) {
+
+              return false;
+
+            }
+
+
+            const distance =
+
+              distanceKm(
+
+                searchPoint[0],
+
+                searchPoint[1],
+
+                lat,
+
+                lon
+
+              );
+
+
+            if (
+
+              distance > radius
+
+            ) {
+
+              return false;
+
+            }
+
+          }
+
+
+          return true;
+
         }
 
-
-        return true;
-
-      });
+      );
 
 
     render();
@@ -2077,17 +2291,14 @@
       null;
 
 
+    rebuildRows();
+
+
+    populateFilters();
+
+
     filtered =
-
-      rows.filter(
-
-        row =>
-
-          hasFormation(row) &&
-
-          isVisible(row)
-
-      );
+      [...rows];
 
 
     render();
@@ -2096,92 +2307,20 @@
 
 
   /* =====================================================
-     RECEPTION DES DONNEES GRIST
-     
-     C'EST ICI QUE LE WIDGET UTILISE
-     LA SOURCE DE DONNEES CONFIGUREE DANS GRIST.
+     CHANGEMENT DE SOURCE
   ====================================================== */
 
-  grist.onRecords(
+  $("mode").addEventListener(
 
-    function(
-      records,
-      columnMappings
-    ) {
+    "change",
 
-      try {
+    () => {
 
-        console.log(
-          "Données reçues de Grist :",
-          records
-        );
+      rebuildRows();
 
+      populateFilters();
 
-        console.log(
-          "Mapping des colonnes :",
-          columnMappings
-        );
-
-
-        rows =
-
-          normalizeRows(
-
-            records,
-
-            columnMappings
-
-          );
-
-
-        populateFilters();
-
-
-        filtered =
-
-          rows.filter(
-
-            row =>
-
-              hasFormation(row) &&
-
-              isVisible(row)
-
-          );
-
-
-        render();
-
-
-      }
-
-      catch (error) {
-
-        console.error(
-
-          "Erreur lors du chargement des données Grist :",
-
-          error
-
-        );
-
-
-        $("status").textContent =
-
-          "Erreur : " +
-
-          error.message;
-
-
-        $("results").innerHTML =
-
-          '<div class="empty">' +
-
-          'Impossible de charger les données Grist.' +
-
-          '</div>';
-
-      }
+      search();
 
     }
 
@@ -2192,12 +2331,12 @@
      EVENEMENTS
   ====================================================== */
 
-  $("searchBtn")
-    .onclick = search;
+  $("searchBtn").onclick =
+    search;
 
 
-  $("resetBtn")
-    .onclick = reset;
+  $("resetBtn").onclick =
+    reset;
 
 
   [
@@ -2205,27 +2344,29 @@
     "lieu"
   ]
 
-  .forEach(id => {
+  .forEach(
+    id => {
 
-    $(id).addEventListener(
+      $(id).addEventListener(
 
-      "keydown",
+        "keydown",
 
-      event => {
+        event => {
 
-        if (
-          event.key === "Enter"
-        ) {
+          if (
+            event.key === "Enter"
+          ) {
 
-          search();
+            search();
+
+          }
 
         }
 
-      }
+      );
 
-    );
-
-  });
+    }
+  );
 
 
   [
@@ -2234,17 +2375,223 @@
     "distance"
   ]
 
-  .forEach(id => {
+  .forEach(
+    id => {
 
-    $(id).addEventListener(
+      $(id).addEventListener(
 
-      "change",
+        "change",
 
-      search
+        search
 
-    );
+      );
 
-  });
+    }
+  );
+
+
+  /* =====================================================
+     CHARGEMENT DES DEUX TABLES GRIST
+  ====================================================== */
+
+  async function loadData() {
+
+    try {
+
+      $("status").textContent =
+
+        "Chargement de Carte2_2 et CMQ…";
+
+
+      /* ===============================================
+         TABLE FORMATIONS
+      ================================================ */
+
+      const formationTable =
+
+        await grist.docApi.fetchTable(
+
+          TABLE_FORMATIONS
+
+        );
+
+
+      const formationIds =
+
+        formationTable.id || [];
+
+
+      formations =
+
+        formationIds.map(
+
+          (id, index) => {
+
+            const row = {
+
+              id:
+                id
+
+            };
+
+
+            Object.keys(
+              formationTable
+            ).forEach(
+
+              column => {
+
+                if (
+                  column !== "id"
+                ) {
+
+                  row[column] =
+
+                    formationTable[
+                      column
+                    ][index];
+
+                }
+
+              }
+
+            );
+
+
+            return normalizeFormation(
+              row
+            );
+
+          }
+
+        );
+
+
+      /* ===============================================
+         TABLE CMQ
+      ================================================ */
+
+      const cmqTable =
+
+        await grist.docApi.fetchTable(
+
+          TABLE_CMQ
+
+        );
+
+
+      const cmqIds =
+
+        cmqTable.id || [];
+
+
+      cmqRows =
+
+        cmqIds.map(
+
+          (id, index) => {
+
+            const row = {
+
+              id:
+                id
+
+            };
+
+
+            Object.keys(
+              cmqTable
+            ).forEach(
+
+              column => {
+
+                if (
+                  column !== "id"
+                ) {
+
+                  row[column] =
+
+                    cmqTable[
+                      column
+                    ][index];
+
+                }
+
+              }
+
+            );
+
+
+            return normalizeCMQ(
+              row
+            );
+
+          }
+
+        );
+
+
+      /* ===============================================
+         INITIALISATION
+      ================================================ */
+
+      rebuildRows();
+
+
+      populateFilters();
+
+
+      filtered =
+        [...rows];
+
+
+      render();
+
+
+      $("status").textContent =
+
+        formations.length +
+
+        " formations + " +
+
+        cmqRows.length +
+
+        " partenaires / CMQ";
+
+
+    }
+
+    catch (error) {
+
+      console.error(
+        error
+      );
+
+
+      $("status").textContent =
+
+        "Erreur de chargement : " +
+
+        error.message;
+
+
+      $("results").innerHTML =
+
+        '<div class="empty">' +
+
+        '<b>Impossible de charger les données.</b>' +
+
+        '<br><br>' +
+
+        escapeHtml(
+          error.message
+        ) +
+
+        '</div>';
+
+    }
+
+  }
 
 
   /* =====================================================
@@ -2254,15 +2601,19 @@
   grist.ready({
 
     requiredAccess:
-      "read table",
+      "full",
 
     allowSelectBy:
-      true,
-
-    columns:
-      COLUMN_CONFIG
+      true
 
   });
+
+
+  /* =====================================================
+     LANCEMENT
+  ====================================================== */
+
+  loadData();
 
 
 })();
