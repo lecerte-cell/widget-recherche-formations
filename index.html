@@ -1,2518 +1,824 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
-
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta charset="utf-8">
+  <title>Carte formations CMQ</title>
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
-
-  <title>Recherche formations – Grist</title>
-
-
-  <!-- =====================================================
-       LEAFLET
-  ====================================================== -->
-
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  >
-
-
-  <!-- =====================================================
-       STYLE
-  ====================================================== -->
+  />
 
   <style>
-
     * {
       box-sizing: border-box;
     }
 
-
     html,
     body {
-
+      width: 100%;
       height: 100%;
-
       margin: 0;
-
       font-family: Arial, sans-serif;
-
-      color: #222;
-
-    }
-
-
-    body {
-
-      display: flex;
-
-      flex-direction: column;
-
       overflow: hidden;
-
-      background: #fff;
-
     }
 
-
-    /* =====================================================
-       BARRE DE RECHERCHE
-    ====================================================== */
-
-    #top {
-
-      padding: 10px;
-
-      border-bottom: 1px solid #ddd;
-
-      background: white;
-
-    }
-
-
-    .row {
-
+    #app {
+      width: 100%;
+      height: 100%;
       display: flex;
-
-      gap: 8px;
-
-      align-items: center;
-
-      flex-wrap: wrap;
-
+      flex-direction: column;
     }
 
-
-    input,
-    select,
-    button {
-
-      font: inherit;
-
-    }
-
-
-    input,
-    select {
-
-      height: 38px;
-
-      border: 1px solid #bbb;
-
-      border-radius: 6px;
-
-      padding: 0 10px;
-
+    #toolbar {
+      padding: 10px;
       background: white;
-
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      z-index: 1000;
     }
 
-
-    input:focus,
-    select:focus {
-
-      outline: none;
-
-      border-color: #2563eb;
-
-    }
-
-
-    #formation {
-
-      flex: 2;
-
+    #search {
+      flex: 1;
       min-width: 220px;
-
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: 14px;
     }
 
-
-    #lieu {
-
-      flex: 1.4;
-
-      min-width: 180px;
-
+    #search:focus {
+      outline: none;
+      border-color: #4285f4;
     }
-
-
-    #filiere {
-
-      flex: 1;
-
-      min-width: 150px;
-
-    }
-
-
-    #type {
-
-      flex: 1;
-
-      min-width: 170px;
-
-    }
-
-
-    #distance {
-
-      width: 115px;
-
-    }
-
 
     button {
-
       height: 38px;
-
-      border: 0;
-
-      border-radius: 6px;
-
       padding: 0 14px;
-
-      cursor: pointer;
-
-      background: #2563eb;
-
+      border: none;
+      border-radius: 6px;
+      background: #4285f4;
       color: white;
-
+      cursor: pointer;
       font-weight: bold;
-
     }
-
 
     button:hover {
-
-      background: #1d4ed8;
-
+      background: #3367d6;
     }
-
-
-    button.secondary {
-
-      background: #eee;
-
-      color: #333;
-
-    }
-
-
-    button.secondary:hover {
-
-      background: #ddd;
-
-    }
-
 
     #status {
-
       font-size: 13px;
-
       color: #555;
-
-      margin-top: 7px;
-
+      padding: 0 5px;
+      white-space: nowrap;
     }
-
-
-    /* =====================================================
-       CONTENU
-    ====================================================== */
-
-    #content {
-
-      flex: 1;
-
-      min-height: 0;
-
-      display: flex;
-
-    }
-
-
-    #results {
-
-      width: 42%;
-
-      min-width: 330px;
-
-      overflow: auto;
-
-      border-right: 1px solid #ddd;
-
-      background: #fafafa;
-
-    }
-
 
     #map {
-
       flex: 1;
-
-      min-width: 0;
-
+      width: 100%;
+      min-height: 0;
     }
 
-
-    /* =====================================================
-       RESULTATS
-    ====================================================== */
-
-    .card {
-
-      padding: 12px;
-
-      border-bottom: 1px solid #ddd;
-
-      background: white;
-
-      cursor: pointer;
-
+    #message {
+      position: absolute;
+      top: 70px;
+      left: 10px;
+      right: 10px;
+      z-index: 2000;
+      padding: 10px 14px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
     }
-
-
-    .card:hover {
-
-      background: #f3f6fb;
-
-    }
-
-
-    .card.selected {
-
-      background: #e8f0fe;
-
-    }
-
-
-    .title {
-
-      font-weight: bold;
-
-      margin-bottom: 5px;
-
-      line-height: 1.3;
-
-    }
-
-
-    .meta {
-
-      font-size: 12px;
-
-      color: #666;
-
-      line-height: 1.45;
-
-    }
-
-
-    .empty {
-
-      padding: 20px;
-
-      color: #666;
-
-      line-height: 1.5;
-
-    }
-
-
-    .info {
-
-      padding: 10px 12px;
-
-      background: #eef4ff;
-
-      border-bottom: 1px solid #d9e5ff;
-
-      color: #334155;
-
-      font-size: 12px;
-
-    }
-
-
-    .pill {
-
-      display: inline-block;
-
-      padding: 2px 7px;
-
-      border-radius: 12px;
-
-      background: #eef2ff;
-
-      color: #3730a3;
-
-      font-size: 11px;
-
-      margin: 4px 3px 0 0;
-
-    }
-
 
     .popup-title {
-
+      font-size: 15px;
       font-weight: bold;
-
-      margin-bottom: 5px;
-
+      margin-bottom: 7px;
     }
-
 
     .popup-line {
-
-      font-size: 12px;
-
-      margin: 3px 0;
-
+      margin: 4px 0;
+      font-size: 13px;
     }
 
-
-    .popup-link {
-
-      margin-top: 6px;
-
+    .popup-button {
+      margin-top: 8px;
+      display: inline-block;
+      padding: 6px 10px;
+      background: #4285f4;
+      color: white;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
     }
-
-
-    /* =====================================================
-       MOBILE
-    ====================================================== */
-
-    @media (max-width: 800px) {
-
-      #content {
-
-        flex-direction: column;
-
-      }
-
-
-      #results {
-
-        width: 100%;
-
-        height: 42%;
-
-        border-right: 0;
-
-        border-bottom: 1px solid #ddd;
-
-      }
-
-
-      #map {
-
-        height: 58%;
-
-      }
-
-    }
-
   </style>
-
 </head>
-
 
 <body>
 
+<div id="app">
 
-<!-- =====================================================
-     BARRE DE RECHERCHE
-====================================================== -->
-
-<div id="top">
-
-  <div class="row">
+  <div id="toolbar">
 
     <input
-      id="formation"
-      type="search"
-      placeholder="🔎 Formation, mot-clé…"
+      id="search"
+      type="text"
+      placeholder="Rechercher une formation, un établissement, une ville..."
     >
 
-
-    <input
-      id="lieu"
-      type="search"
-      placeholder="📍 Ville, adresse…"
-    >
-
-
-    <select id="distance">
-
-      <option value="0">
-        Sans rayon
-      </option>
-
-      <option value="5">
-        5 km
-      </option>
-
-      <option
-        value="10"
-        selected
-      >
-        10 km
-      </option>
-
-      <option value="25">
-        25 km
-      </option>
-
-      <option value="50">
-        50 km
-      </option>
-
-      <option value="100">
-        100 km
-      </option>
-
-    </select>
-
-
-    <select id="filiere">
-
-      <option value="">
-        Toutes les filières
-      </option>
-
-    </select>
-
-
-    <select id="type">
-
-      <option value="">
-        Tous les établissements
-      </option>
-
-    </select>
-
-
-    <button id="searchBtn">
-      Rechercher
-    </button>
-
-
-    <button
-      id="resetBtn"
-      class="secondary"
-    >
+    <button id="reset">
       Réinitialiser
     </button>
 
-  </div>
-
-
-  <div id="status">
-    En attente des données Grist…
-  </div>
-
-</div>
-
-
-<!-- =====================================================
-     RESULTATS + CARTE
-====================================================== -->
-
-<div id="content">
-
-  <div id="results">
-
-    <div class="empty">
-      En attente des données de CARTE2…
-    </div>
+    <span id="status">
+      En attente des données Grist...
+    </span>
 
   </div>
-
 
   <div id="map"></div>
 
+  <div id="message"></div>
+
 </div>
 
 
-<!-- =====================================================
-     LIBRAIRIES
-====================================================== -->
-
+<!-- Leaflet -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- Grist -->
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
 
 <script>
 
-(() => {
-
-  "use strict";
+"use strict";
 
 
-  /* =====================================================
-     CONFIGURATION DES COLONNES
+/* ============================================================
+   CONFIGURATION DES COLONNES
+   ============================================================ */
 
-     Ces noms correspondent aux colonnes que tu avais
-     dans ton code initial.
+const COL = {
 
-     Le widget reçoit uniquement les lignes que Grist
-     lui transmet.
-  ====================================================== */
+  formation: "Nom de la formation",
 
-  const COL = {
+  filiere: "Filiére",
 
-    formation:
-      "Nom de la formation",
+  partenaire: "Nom du partenaire",
 
-    filiere:
-      "Filiére",
+  cmq: "Nom du CMQ",
 
-    partenaire:
-      "Nom du partenaire",
+  type: "Catégorie établissement",
 
-    cmq:
-      "Nom du CMQ",
+  adresse: "adresse du partenaire",
 
-    type:
-      "Catégorie établissement",
+  latitude: "LATITUDE_CARTE",
 
-    adresse:
-      "adresse du partenaire",
+  longitude: "LONGITUDE_CARTE",
 
-    lat:
-      "LATITUDE_CARTE",
+  site: "Site internet",
 
-    lon:
-      "LONGITUDE_CARTE",
+  afficher: "Afficher_sur_carte"
 
-    site:
-      "Site internet",
-
-    afficher:
-      "Afficher_sur_carte"
-
-  };
+};
 
 
-  /* =====================================================
-     VARIABLES
-  ====================================================== */
+/* ============================================================
+   VARIABLES
+   ============================================================ */
 
-  let rows = [];
+let allRecords = [];
 
-  let filtered = [];
+let displayedRecords = [];
 
-  let searchPoint = null;
+let markers = [];
 
-  let selectedRowId = null;
-
-
-  /* =====================================================
-     CARTE LEAFLET DU WIDGET
-     
-     ATTENTION :
-     
-     Cette carte n'est PAS la carte CARTE2 de Grist.
-     
-     Elle sert uniquement à afficher les résultats
-     dans le widget de recherche.
-     
-     Les données viennent directement de Grist.
-  ====================================================== */
-
-  const map =
-
-    L.map("map")
-
-      .setView(
-        [46.6, 2.4],
-        6
-      );
+let currentSearch = "";
 
 
-  L.tileLayer(
+/* ============================================================
+   INITIALISATION DE LA CARTE
+   ============================================================ */
 
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-
-    {
-
-      maxZoom: 19,
-
-      attribution:
-        "&copy; OpenStreetMap contributors"
-
-    }
-
-  ).addTo(map);
+const map = L.map("map").setView(
+  [46.6, 2.4],
+  6
+);
 
 
-  const markers =
-    L.layerGroup().addTo(map);
+L.tileLayer(
+  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  {
+    maxZoom: 19,
 
-
-  /* =====================================================
-     OUTILS
-  ====================================================== */
-
-  const $ = id =>
-    document.getElementById(id);
-
-
-  function norm(value) {
-
-    return String(value ?? "")
-
-      .normalize("NFD")
-
-      .replace(
-        /[\u0300-\u036f]/g,
-        ""
-      )
-
-      .toLowerCase()
-
-      .trim();
-
+    attribution:
+      "&copy; OpenStreetMap contributors"
   }
+).addTo(map);
 
 
-  function num(value) {
+/* Groupe de marqueurs */
 
-    if (
-      value === null ||
-      value === undefined ||
-      value === ""
-    ) {
+const markerLayer =
+  L.layerGroup().addTo(map);
 
-      return NaN;
 
-    }
+/* ============================================================
+   OUTILS
+   ============================================================ */
 
+function normalize(value) {
 
-    return Number(
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
-      String(value)
+}
 
-        .replace(",", ".")
 
-        .trim()
+function escapeHtml(value) {
 
-    );
+  return String(value ?? "")
+    .replace(/[&<>"']/g, function(char) {
 
-  }
+      return {
 
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
 
-  function escapeHtml(value) {
-
-    return String(value ?? "")
-
-      .replace(
-
-        /[&<>"']/g,
-
-        character => ({
-
-          "&": "&amp;",
-
-          "<": "&lt;",
-
-          ">": "&gt;",
-
-          '"': "&quot;",
-
-          "'": "&#039;"
-
-        }[character])
-
-      );
-
-  }
-
-
-  /* =====================================================
-     DISTANCE GPS
-  ====================================================== */
-
-  function distanceKm(
-
-    lat1,
-    lon1,
-    lat2,
-    lon2
-
-  ) {
-
-    const R = 6371;
-
-    const p =
-      Math.PI / 180;
-
-
-    const x =
-      (lat2 - lat1) * p;
-
-
-    const y =
-      (lon2 - lon1) * p;
-
-
-    const h =
-
-      Math.sin(x / 2) ** 2 +
-
-      Math.cos(lat1 * p) *
-
-      Math.cos(lat2 * p) *
-
-      Math.sin(y / 2) ** 2;
-
-
-    return (
-
-      2 *
-
-      R *
-
-      Math.asin(
-        Math.sqrt(h)
-      )
-
-    );
-
-  }
-
-
-  /* =====================================================
-     VALEUR COLONNE
-  ====================================================== */
-
-  function value(row, column) {
-
-    return row[column];
-
-  }
-
-
-  /* =====================================================
-     AFFICHAGE SUR CARTE
-  ====================================================== */
-
-  function isVisible(row) {
-
-    const v =
-      value(
-        row,
-        COL.afficher
-      );
-
-
-    /*
-      Si la colonne n'est pas présente
-      ou vide, on affiche la ligne.
-    */
-
-    if (
-      v === undefined ||
-      v === null ||
-      v === ""
-    ) {
-
-      return true;
-
-    }
-
-
-    if (v === true) {
-
-      return true;
-
-    }
-
-
-    if (v === 1) {
-
-      return true;
-
-    }
-
-
-    const text =
-      norm(v);
-
-
-    return (
-
-      text === "true" ||
-
-      text === "1" ||
-
-      text === "oui"
-
-    );
-
-  }
-
-
-  /* =====================================================
-     FORMATION VALIDE
-  ====================================================== */
-
-  function hasFormation(row) {
-
-    return (
-
-      String(
-        value(
-          row,
-          COL.formation
-        ) ?? ""
-      ).trim() !== ""
-
-    );
-
-  }
-
-
-  /* =====================================================
-     FILTRES DYNAMIQUES
-  ====================================================== */
-
-  function populateFilters() {
-
-    /*
-      Important :
-      on reconstruit les filtres à partir des données
-      ACTUELLEMENT envoyées par Grist.
-
-      Donc si tu changes de CMQ dans la carte du haut,
-      les options changent également.
-    */
-
-
-    $("filiere").innerHTML =
-
-      '<option value="">' +
-
-      'Toutes les filières' +
-
-      '</option>';
-
-
-    $("type").innerHTML =
-
-      '<option value="">' +
-
-      'Tous les établissements' +
-
-      '</option>';
-
-
-    const filieres =
-
-      [
-
-        ...new Set(
-
-          rows
-
-            .map(
-              row =>
-                String(
-                  value(
-                    row,
-                    COL.filiere
-                  ) ?? ""
-                ).trim()
-            )
-
-            .filter(Boolean)
-
-        )
-
-      ]
-
-      .sort(
-        (a, b) =>
-          a.localeCompare(
-            b,
-            "fr"
-          )
-      );
-
-
-    const types =
-
-      [
-
-        ...new Set(
-
-          rows
-
-            .map(
-              row =>
-                String(
-                  value(
-                    row,
-                    COL.type
-                  ) ?? ""
-                ).trim()
-            )
-
-            .filter(Boolean)
-
-        )
-
-      ]
-
-      .sort(
-        (a, b) =>
-          a.localeCompare(
-            b,
-            "fr"
-          )
-      );
-
-
-    for (
-      const item of filieres
-    ) {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-
-      option.value =
-        item;
-
-
-      option.textContent =
-        item;
-
-
-      $("filiere")
-        .appendChild(
-          option
-        );
-
-    }
-
-
-    for (
-      const item of types
-    ) {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-
-      option.value =
-        item;
-
-
-      option.textContent =
-        item;
-
-
-      $("type")
-        .appendChild(
-          option
-        );
-
-    }
-
-  }
-
-
-  /* =====================================================
-     POPUP
-  ====================================================== */
-
-  function popup(
-    row,
-    distance
-  ) {
-
-    let html = "";
-
-
-    html +=
-
-      '<div class="popup-title">' +
-
-      escapeHtml(
-        value(
-          row,
-          COL.formation
-        )
-      ) +
-
-      '</div>';
-
-
-    if (
-      value(
-        row,
-        COL.partenaire
-      )
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        '🏫 ' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.partenaire
-          )
-        ) +
-
-        '</div>';
-
-    }
-
-
-    if (
-      value(
-        row,
-        COL.adresse
-      )
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        '📍 ' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.adresse
-          )
-        ) +
-
-        '</div>';
-
-    }
-
-
-    if (
-      value(
-        row,
-        COL.cmq
-      )
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        '🎓 ' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.cmq
-          )
-        ) +
-
-        '</div>';
-
-    }
-
-
-    if (
-      value(
-        row,
-        COL.filiere
-      )
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        'Filière : ' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.filiere
-          )
-        ) +
-
-        '</div>';
-
-    }
-
-
-    if (
-      value(
-        row,
-        COL.type
-      )
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        'Établissement : ' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.type
-          )
-        ) +
-
-        '</div>';
-
-    }
-
-
-    if (
-      distance !== null
-    ) {
-
-      html +=
-
-        '<div class="popup-line">' +
-
-        '📏 ' +
-
-        distance.toFixed(1) +
-
-        ' km' +
-
-        '</div>';
-
-    }
-
-
-    if (
-      value(
-        row,
-        COL.site
-      )
-    ) {
-
-      let url =
-
-        String(
-          value(
-            row,
-            COL.site
-          )
-        ).trim();
-
-
-      /*
-        Si l'utilisateur a renseigné un site
-        sans https://, on l'ajoute.
-      */
-
-      if (
-        !/^https?:\/\//i.test(url)
-      ) {
-
-        url =
-          "https://" + url;
-
-      }
-
-
-      html +=
-
-        '<div class="popup-line popup-link">' +
-
-        '🌐 <a href="' +
-
-        escapeHtml(url) +
-
-        '" target="_blank" rel="noopener">' +
-
-        'Site internet' +
-
-        '</a>' +
-
-        '</div>';
-
-    }
-
-
-    return html;
-
-  }
-
-
-  /* =====================================================
-     SELECTION DANS GRIST
-  ====================================================== */
-
-  async function selectRow(row) {
-
-    selectedRowId =
-      row.id;
-
-
-    /*
-      On déplace le curseur Grist sur la ligne.
-
-      Comme le widget est configuré comme source
-      de liaison, cela permet aux widgets liés
-      de suivre la sélection.
-    */
-
-    try {
-
-      await grist.setCursorPos({
-
-        rowId:
-          row.id
-
-      });
-
-    }
-
-    catch (error) {
-
-      console.error(
-
-        "Impossible de sélectionner la ligne Grist :",
-
-        error
-
-      );
-
-    }
-
-
-    /*
-      On actualise visuellement la liste.
-    */
-
-    document
-      .querySelectorAll(".card")
-      .forEach(card => {
-
-        card.classList.remove(
-          "selected"
-        );
-
-      });
-
-
-    const selected =
-      document.querySelector(
-        '[data-row-id="' +
-        row.id +
-        '"]'
-      );
-
-
-    if (selected) {
-
-      selected.classList.add(
-        "selected"
-      );
-
-    }
-
-  }
-
-
-  /* =====================================================
-     RENDU
-  ====================================================== */
-
-  function render() {
-
-    markers.clearLayers();
-
-
-    const bounds = [];
-
-
-    const list =
-      $("results");
-
-
-    list.innerHTML = "";
-
-
-    /*
-      Bandeau indiquant que les données viennent
-      de la sélection Grist.
-    */
-
-    if (rows.length) {
-
-      const cmqValues =
-
-        [
-
-          ...new Set(
-
-            rows
-
-              .map(
-                row =>
-                  String(
-                    value(
-                      row,
-                      COL.cmq
-                    ) ?? ""
-                  ).trim()
-              )
-
-              .filter(Boolean)
-
-          )
-
-        ];
-
-
-      if (
-        cmqValues.length === 1
-      ) {
-
-        const info =
-          document.createElement(
-            "div"
-          );
-
-
-        info.className =
-          "info";
-
-
-        info.textContent =
-
-          "CMQ sélectionné : " +
-
-          cmqValues[0];
-
-
-        list.appendChild(
-          info
-        );
-
-      }
-
-    }
-
-
-    /* ===================================================
-       RESULTATS
-    ==================================================== */
-
-    filtered.forEach(row => {
-
-      const lat =
-        num(
-          value(
-            row,
-            COL.lat
-          )
-        );
-
-
-      const lon =
-        num(
-          value(
-            row,
-            COL.lon
-          )
-        );
-
-
-      let distance =
-        null;
-
-
-      if (
-
-        searchPoint &&
-
-        Number.isFinite(lat) &&
-
-        Number.isFinite(lon)
-
-      ) {
-
-        distance =
-
-          distanceKm(
-
-            searchPoint[0],
-
-            searchPoint[1],
-
-            lat,
-
-            lon
-
-          );
-
-      }
-
-
-      /* -----------------------------------------------
-         MARQUEUR
-      ------------------------------------------------ */
-
-      if (
-
-        Number.isFinite(lat) &&
-
-        Number.isFinite(lon)
-
-      ) {
-
-        const marker =
-
-          L.marker([
-
-            lat,
-
-            lon
-
-          ]);
-
-
-        marker.bindPopup(
-
-          popup(
-            row,
-            distance
-          )
-
-        );
-
-
-        marker.on(
-
-          "click",
-
-          () => {
-
-            selectRow(row);
-
-          }
-
-        );
-
-
-        marker.addTo(
-          markers
-        );
-
-
-        bounds.push([
-
-          lat,
-
-          lon
-
-        ]);
-
-      }
-
-
-      /* -----------------------------------------------
-         CARTE RESULTAT
-      ------------------------------------------------ */
-
-      const card =
-        document.createElement(
-          "div"
-        );
-
-
-      card.className =
-        "card";
-
-
-      card.dataset.rowId =
-        row.id;
-
-
-      if (
-        row.id === selectedRowId
-      ) {
-
-        card.classList.add(
-          "selected"
-        );
-
-      }
-
-
-      let html = "";
-
-
-      html +=
-
-        '<div class="title">' +
-
-        escapeHtml(
-          value(
-            row,
-            COL.formation
-          )
-        ) +
-
-        '</div>';
-
-
-      html +=
-
-        '<div class="meta">';
-
-
-      if (
-        value(
-          row,
-          COL.partenaire
-        )
-      ) {
-
-        html +=
-
-          '<b>' +
-
-          escapeHtml(
-            value(
-              row,
-              COL.partenaire
-            )
-          ) +
-
-          '</b>';
-
-      }
-
-
-      if (
-        value(
-          row,
-          COL.adresse
-        )
-      ) {
-
-        html +=
-
-          '<br>' +
-
-          escapeHtml(
-            value(
-              row,
-              COL.adresse
-            )
-          );
-
-      }
-
-
-      if (
-        value(
-          row,
-          COL.cmq
-        )
-      ) {
-
-        html +=
-
-          '<br>🎓 ' +
-
-          escapeHtml(
-            value(
-              row,
-              COL.cmq
-            )
-          );
-
-      }
-
-
-      if (
-        distance !== null
-      ) {
-
-        html +=
-
-          '<br>📏 ' +
-
-          distance.toFixed(1) +
-
-          ' km';
-
-      }
-
-
-      html +=
-        '</div>';
-
-
-      if (
-        value(
-          row,
-          COL.filiere
-        )
-      ) {
-
-        html +=
-
-          '<span class="pill">' +
-
-          escapeHtml(
-            value(
-              row,
-              COL.filiere
-            )
-          ) +
-
-          '</span>';
-
-      }
-
-
-      if (
-        value(
-          row,
-          COL.type
-        )
-      ) {
-
-        html +=
-
-          '<span class="pill">' +
-
-          escapeHtml(
-            value(
-              row,
-              COL.type
-            )
-          ) +
-
-          '</span>';
-
-      }
-
-
-      card.innerHTML =
-        html;
-
-
-      card.onclick = () => {
-
-        if (
-
-          Number.isFinite(lat) &&
-
-          Number.isFinite(lon)
-
-        ) {
-
-          map.setView(
-
-            [lat, lon],
-
-            15
-
-          );
-
-        }
-
-
-        selectRow(row);
-
-      };
-
-
-      list.appendChild(
-        card
-      );
+      }[char];
 
     });
 
+}
 
-    /* ===================================================
-       AUCUN RESULTAT
-    ==================================================== */
+
+function number(value) {
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+
+    return NaN;
+
+  }
+
+  return Number(
+    String(value)
+      .replace(",", ".")
+      .trim()
+  );
+
+}
+
+
+/* ============================================================
+   MESSAGE
+   ============================================================ */
+
+function showMessage(text) {
+
+  const element =
+    document.getElementById("message");
+
+  element.textContent = text;
+
+  element.style.display = "block";
+
+}
+
+
+function hideMessage() {
+
+  document.getElementById(
+    "message"
+  ).style.display = "none";
+
+}
+
+
+/* ============================================================
+   VERIFICATION AFFICHAGE
+   ============================================================ */
+
+function shouldDisplay(record) {
+
+  const value =
+    record[COL.afficher];
+
+  /*
+   Si la colonne n'existe pas ou est vide,
+   on affiche quand même.
+  */
+
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
+
+    return true;
+
+  }
+
+
+  if (value === true) {
+    return true;
+  }
+
+
+  if (value === 1) {
+    return true;
+  }
+
+
+  const text =
+    normalize(value);
+
+
+  return (
+    text === "oui" ||
+    text === "true" ||
+    text === "1"
+  );
+
+}
+
+
+/* ============================================================
+   RECHERCHE
+   ============================================================ */
+
+function matchesSearch(record) {
+
+  if (!currentSearch) {
+    return true;
+  }
+
+
+  const text = [
+
+    record[COL.formation],
+
+    record[COL.filiere],
+
+    record[COL.partenaire],
+
+    record[COL.cmq],
+
+    record[COL.type],
+
+    record[COL.adresse]
+
+  ].join(" ");
+
+
+  return normalize(text)
+    .includes(currentSearch);
+
+}
+
+
+/* ============================================================
+   POPUP
+   ============================================================ */
+
+function createPopup(record) {
+
+  const formation =
+    record[COL.formation] || "Formation";
+
+
+  let html = "";
+
+
+  html +=
+    '<div class="popup-title">' +
+    escapeHtml(formation) +
+    '</div>';
+
+
+  if (record[COL.partenaire]) {
+
+    html +=
+      '<div class="popup-line">' +
+      '<b>Établissement :</b> ' +
+      escapeHtml(record[COL.partenaire]) +
+      '</div>';
+
+  }
+
+
+  if (record[COL.filiere]) {
+
+    html +=
+      '<div class="popup-line">' +
+      '<b>Filière :</b> ' +
+      escapeHtml(record[COL.filiere]) +
+      '</div>';
+
+  }
+
+
+  if (record[COL.type]) {
+
+    html +=
+      '<div class="popup-line">' +
+      '<b>Type :</b> ' +
+      escapeHtml(record[COL.type]) +
+      '</div>';
+
+  }
+
+
+  if (record[COL.adresse]) {
+
+    html +=
+      '<div class="popup-line">' +
+      '<b>Adresse :</b> ' +
+      escapeHtml(record[COL.adresse]) +
+      '</div>';
+
+  }
+
+
+  if (record[COL.cmq]) {
+
+    html +=
+      '<div class="popup-line">' +
+      '<b>CMQ :</b> ' +
+      escapeHtml(record[COL.cmq]) +
+      '</div>';
+
+  }
+
+
+  if (record[COL.site]) {
+
+    let url =
+      String(record[COL.site]).trim();
+
 
     if (
-      !filtered.length
+      url &&
+      !/^https?:\/\//i.test(url)
     ) {
 
-      const empty =
-        document.createElement(
-          "div"
-        );
+      url =
+        "https://" + url;
+
+    }
 
 
-      empty.className =
-        "empty";
+    if (url) {
 
+      html +=
+        '<div class="popup-line">' +
+        '<a class="popup-button" href="' +
+        escapeHtml(url) +
+        '" target="_blank" rel="noopener">' +
+        'Voir le site' +
+        '</a>' +
+        '</div>';
+
+    }
+
+  }
+
+
+  return html;
+
+}
+
+
+/* ============================================================
+   SELECTION D'UNE LIGNE DANS GRIST
+   ============================================================ */
+
+async function selectGristRecord(record) {
+
+  if (!record || !record.id) {
+    return;
+  }
+
+
+  try {
+
+    await grist.setCursorPos({
+      rowId: record.id
+    });
+
+  }
+
+  catch (error) {
+
+    console.error(
+      "Erreur sélection Grist :",
+      error
+    );
+
+  }
+
+}
+
+
+/* ============================================================
+   AFFICHAGE DES MARQUEURS
+   ============================================================ */
+
+function displayMarkers() {
+
+  markerLayer.clearLayers();
+
+  markers = [];
+
+
+  const bounds = [];
+
+
+  displayedRecords.forEach(
+    function(record) {
+
+      const lat =
+        number(record[COL.latitude]);
+
+
+      const lon =
+        number(record[COL.longitude]);
+
+
+      /*
+       Pas de coordonnées = pas de marqueur.
+      */
 
       if (
-        rows.length
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon)
       ) {
 
-        empty.textContent =
-
-          "Aucune formation ne correspond aux critères de recherche.";
-
-      }
-
-      else {
-
-        empty.textContent =
-
-          "Aucune donnée reçue de Grist. Vérifiez le lien « Sélectionner par ».";
+        return;
 
       }
 
 
-      list.appendChild(
-        empty
-      );
+      const marker =
+        L.marker([lat, lon]);
 
-    }
 
-
-    /* ===================================================
-       ZOOM
-    ==================================================== */
-
-    if (
-      bounds.length &&
-      !searchPoint
-    ) {
-
-      map.fitBounds(
-
-        bounds,
-
-        {
-
-          padding: [
-            20,
-            20
-          ]
-
-        }
-
-      );
-
-    }
-
-
-    /* ===================================================
-       STATUT
-    ==================================================== */
-
-    if (
-      filtered.length === 0
-    ) {
-
-      $("status").textContent =
-
-        "0 formation trouvée";
-
-    }
-
-    else {
-
-      $("status").textContent =
-
-        filtered.length +
-
-        " formation" +
-
-        (
-
-          filtered.length > 1
-            ? "s"
-            : ""
-
-        ) +
-
-        " trouvée" +
-
-        (
-
-          filtered.length > 1
-            ? "s"
-            : ""
-
-        );
-
-    }
-
-  }
-
-
-  /* =====================================================
-     GEOCODAGE D'UNE VILLE / ADRESSE
-  ====================================================== */
-
-  async function geocode() {
-
-    const query =
-      $("lieu")
-        .value
-        .trim();
-
-
-    if (!query) {
-
-      searchPoint =
-        null;
-
-      return true;
-
-    }
-
-
-    $("status").textContent =
-
-      "Recherche de « " +
-
-      query +
-
-      " »…";
-
-
-    const url =
-
-      "https://nominatim.openstreetmap.org/search" +
-
-      "?format=jsonv2" +
-
-      "&limit=1" +
-
-      "&countrycodes=fr" +
-
-      "&q=" +
-
-      encodeURIComponent(
-        query
-      );
-
-
-    try {
-
-      const response =
-        await fetch(
-
-          url,
-
-          {
-
-            headers: {
-
-              "Accept":
-                "application/json"
-
-            }
-
-          }
-
-        );
-
-
-      if (
-        !response.ok
-      ) {
-
-        throw new Error(
-
-          "Erreur HTTP " +
-
-          response.status
-
-        );
-
-      }
-
-
-      const data =
-        await response.json();
-
-
-      if (
-        !data.length
-      ) {
-
-        alert(
-          "Lieu introuvable."
-        );
-
-        return false;
-
-      }
-
-
-      searchPoint = [
-
-        Number(
-          data[0].lat
-        ),
-
-        Number(
-          data[0].lon
-        )
-
-      ];
-
-
-      map.setView(
-
-        searchPoint,
-
-        12
-
-      );
-
-
-      return true;
-
-    }
-
-    catch (error) {
-
-      console.error(
-        error
-      );
-
-
-      alert(
-
-        "Impossible de rechercher ce lieu."
-
-      );
-
-
-      return false;
-
-    }
-
-  }
-
-
-  /* =====================================================
-     RECHERCHE
-  ====================================================== */
-
-  async function search() {
-
-    const ok =
-      await geocode();
-
-
-    if (!ok) {
-
-      return;
-
-    }
-
-
-    const query =
-
-      norm(
-        $("formation").value
-      );
-
-
-    const filiere =
-
-      norm(
-        $("filiere").value
-      );
-
-
-    const type =
-
-      norm(
-        $("type").value
-      );
-
-
-    const radius =
-
-      num(
-        $("distance").value
-      );
-
-
-    filtered =
-
-      rows.filter(row => {
-
-
-        /* ---------------------------------------------
-           FORMATION
-        ---------------------------------------------- */
-
-        if (
-          !hasFormation(row)
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ---------------------------------------------
-           AFFICHER SUR CARTE
-        ---------------------------------------------- */
-
-        if (
-          !isVisible(row)
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ---------------------------------------------
-           TEXTE
-        ---------------------------------------------- */
-
-        const text =
-
-          norm([
-
-            value(
-              row,
-              COL.formation
-            ),
-
-            value(
-              row,
-              COL.partenaire
-            ),
-
-            value(
-              row,
-              COL.filiere
-            ),
-
-            value(
-              row,
-              COL.cmq
-            ),
-
-            value(
-              row,
-              COL.adresse
-            ),
-
-            value(
-              row,
-              COL.type
-            )
-
-          ].join(" "));
-
-
-        if (
-
-          query &&
-
-          !text.includes(
-            query
-          )
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ---------------------------------------------
-           FILIERE
-        ---------------------------------------------- */
-
-        if (
-
-          filiere &&
-
-          norm(
-            value(
-              row,
-              COL.filiere
-            )
-          ) !== filiere
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ---------------------------------------------
-           TYPE
-        ---------------------------------------------- */
-
-        if (
-
-          type &&
-
-          norm(
-            value(
-              row,
-              COL.type
-            )
-          ) !== type
-
-        ) {
-
-          return false;
-
-        }
-
-
-        /* ---------------------------------------------
-           RAYON
-        ---------------------------------------------- */
-
-        if (
-
-          searchPoint &&
-
-          radius > 0
-
-        ) {
-
-          const lat =
-
-            num(
-              value(
-                row,
-                COL.lat
-              )
-            );
-
-
-          const lon =
-
-            num(
-              value(
-                row,
-                COL.lon
-              )
-            );
-
-
-          if (
-
-            !Number.isFinite(lat) ||
-
-            !Number.isFinite(lon)
-
-          ) {
-
-            return false;
-
-          }
-
-
-          const distance =
-
-            distanceKm(
-
-              searchPoint[0],
-
-              searchPoint[1],
-
-              lat,
-
-              lon
-
-            );
-
-
-          if (
-            distance > radius
-          ) {
-
-            return false;
-
-          }
-
-        }
-
-
-        return true;
-
-      });
-
-
-    render();
-
-  }
-
-
-  /* =====================================================
-     RESET
-  ====================================================== */
-
-  function reset() {
-
-    $("formation").value =
-      "";
-
-
-    $("lieu").value =
-      "";
-
-
-    $("filiere").value =
-      "";
-
-
-    $("type").value =
-      "";
-
-
-    $("distance").value =
-      "10";
-
-
-    searchPoint =
-      null;
-
-
-    selectedRowId =
-      null;
-
-
-    filtered =
-
-      rows.filter(
-
-        row =>
-
-          hasFormation(row) &&
-
-          isVisible(row)
-
-      );
-
-
-    render();
-
-  }
-
-
-  /* =====================================================
-     DONNEES RECUES DE GRIST
-     
-     C'EST LE POINT ESSENTIEL.
-
-     Grist appelle cette fonction quand les données
-     du widget changent.
-
-     Si le widget est configuré avec :
-
-       DONNEES SOURCE = Carte2_2
-       SELECTIONNER PAR = CMQ Personnalisée
-
-     alors Grist transmet ici les données correspondant
-     au CMQ sélectionné.
-  ====================================================== */
-
-  grist.onRecords(
-
-    function(
-      records,
-      mappings
-    ) {
-
-      console.log(
-        "Données reçues de Grist :",
-        records
-      );
-
-
-      console.log(
-        "Mappings Grist :",
-        mappings
+      marker.bindPopup(
+        createPopup(record)
       );
 
 
       /*
-        On conserve les données telles quelles.
-
-        Elles sont déjà filtrées par Grist selon
-        la configuration "Sélectionner par".
+       Quand l'utilisateur clique sur le
+       marqueur, on sélectionne la ligne
+       correspondante dans Grist.
       */
 
-      rows =
-        Array.isArray(records)
-          ? records
-          : [];
+      marker.on(
+        "click",
+        function() {
 
+          selectGristRecord(record);
 
-      selectedRowId =
-        null;
-
-
-      /*
-        Les filtres sont reconstruits uniquement
-        avec les données reçues.
-      */
-
-      populateFilters();
-
-
-      /*
-        Affichage initial.
-      */
-
-      filtered =
-
-        rows.filter(
-
-          row =>
-
-            hasFormation(row) &&
-
-            isVisible(row)
-
-        );
-
-
-      render();
-
-
-      /*
-        Si les données viennent d'être modifiées
-        ou qu'un autre CMQ est sélectionné,
-        on remet la carte au bon niveau.
-      */
-
-      setTimeout(
-        () => {
-
-          map.invalidateSize();
-
-        },
-        100
+        }
       );
 
-    }
 
+      markerLayer.addLayer(marker);
+
+
+      markers.push(marker);
+
+
+      bounds.push([
+        lat,
+        lon
+      ]);
+
+    }
   );
 
 
-  /* =====================================================
-     EVENEMENTS
-  ====================================================== */
+  /*
+   Zoom automatique.
+  */
 
-  $("searchBtn").onclick =
-    search;
+  if (bounds.length > 0) {
+
+    map.fitBounds(
+      bounds,
+      {
+        padding: [30, 30],
+        maxZoom: 12
+      }
+    );
+
+  }
+
+}
 
 
-  $("resetBtn").onclick =
-    reset;
+/* ============================================================
+   MISE A JOUR
+   ============================================================ */
 
+function updateMap() {
 
-  [
-    "formation",
-    "lieu"
-  ]
+  displayedRecords =
+    allRecords.filter(
+      function(record) {
 
-  .forEach(id => {
-
-    $(id).addEventListener(
-
-      "keydown",
-
-      event => {
-
-        if (
-          event.key === "Enter"
-        ) {
-
-          search();
-
-        }
+        return (
+          shouldDisplay(record) &&
+          matchesSearch(record)
+        );
 
       }
-
     );
 
-  });
+
+  displayMarkers();
 
 
-  [
-    "filiere",
-    "type",
-    "distance"
-  ]
+  document.getElementById(
+    "status"
+  ).textContent =
 
-  .forEach(id => {
+    displayedRecords.length +
+    " établissement(s) affiché(s)";
 
-    $(id).addEventListener(
 
-      "change",
+  if (allRecords.length === 0) {
 
-      search
-
+    showMessage(
+      "Aucune donnée reçue de Grist. Vérifie la configuration « Données source » et « Sélectionner par »."
     );
 
-  });
+  }
+
+  else if (displayedRecords.length === 0) {
+
+    showMessage(
+      "Aucun résultat pour cette recherche."
+    );
+
+  }
+
+  else {
+
+    hideMessage();
+
+  }
+
+}
 
 
-  /* =====================================================
-     INITIALISATION GRIST
-  ====================================================== */
+/* ============================================================
+   RECEPTION DES DONNEES GRIST
+   ============================================================ */
 
-  grist.ready({
+/*
+   IMPORTANT :
 
-    /*
-      Le widget peut servir de source de liaison.
-    */
+   Grist appelle cette fonction à chaque fois que
+   les données liées au widget changent.
 
-    allowSelectBy:
-      true,
+   Donc si tu sélectionnes un CMQ dans
+   « CMQ Personnalisée », les données reçues ici
+   changent automatiquement SI le widget est configuré
+   avec :
 
-    /*
-      On demande à Grist de donner accès à la table
-      utilisée comme source du widget.
-    */
+       Données source = Carte2_2
+       Sélectionner par = CMQ Personnalisée
+*/
 
-    requiredAccess:
-      "read table"
+grist.onRecords(
+  function(records) {
 
-  });
+    console.log(
+      "Données reçues de Grist :",
+      records
+    );
 
 
-})();
+    allRecords =
+      Array.isArray(records)
+        ? records
+        : [];
+
+
+    updateMap();
+
+  }
+);
+
+
+/* ============================================================
+   RECHERCHE
+   ============================================================ */
+
+document
+  .getElementById("search")
+  .addEventListener(
+    "input",
+    function(event) {
+
+      currentSearch =
+        normalize(event.target.value);
+
+      updateMap();
+
+    }
+  );
+
+
+/* ============================================================
+   RESET
+   ============================================================ */
+
+document
+  .getElementById("reset")
+  .addEventListener(
+    "click",
+    function() {
+
+      document.getElementById(
+        "search"
+      ).value = "";
+
+      currentSearch = "";
+
+      updateMap();
+
+    }
+  );
+
+
+/* ============================================================
+   INITIALISATION GRIST
+   ============================================================ */
+
+grist.ready({
+
+  /*
+   Permet à ce widget de participer au système
+   de sélection/lien de Grist.
+  */
+
+  allowSelectBy: true,
+
+  /*
+   Le widget a besoin de lire les données.
+  */
+
+  requiredAccess: "read table"
+
+});
+
+
+/* ============================================================
+   RESIZE
+   ============================================================ */
+
+window.addEventListener(
+  "resize",
+  function() {
+
+    setTimeout(
+      function() {
+
+        map.invalidateSize();
+
+      },
+      100
+    );
+
+  }
+);
+
 
 </script>
 
 </body>
-
 </html>
