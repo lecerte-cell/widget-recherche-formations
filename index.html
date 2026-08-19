@@ -1,822 +1,243 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Carte formations CMQ</title>
+    <title>Widget CMQ</title>
 
-  <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
+    <style>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+        body {
+            margin: 0;
+            padding: 15px;
+            font-family: Arial, sans-serif;
+        }
 
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+        #status {
+            padding: 10px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
 
-    #app {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
+        #results {
+            width: 100%;
+        }
 
-    #toolbar {
-      padding: 10px;
-      background: white;
-      border-bottom: 1px solid #ddd;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      z-index: 1000;
-    }
+        .row {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
 
-    #search {
-      flex: 1;
-      min-width: 220px;
-      height: 38px;
-      padding: 0 12px;
-      border: 1px solid #bbb;
-      border-radius: 6px;
-      font-size: 14px;
-    }
+        .title {
+            font-weight: bold;
+        }
 
-    #search:focus {
-      outline: none;
-      border-color: #4285f4;
-    }
+        .info {
+            color: #666;
+            font-size: 13px;
+            margin-top: 4px;
+        }
 
-    button {
-      height: 38px;
-      padding: 0 14px;
-      border: none;
-      border-radius: 6px;
-      background: #4285f4;
-      color: white;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    button:hover {
-      background: #3367d6;
-    }
-
-    #status {
-      font-size: 13px;
-      color: #555;
-      padding: 0 5px;
-      white-space: nowrap;
-    }
-
-    #map {
-      flex: 1;
-      width: 100%;
-      min-height: 0;
-    }
-
-    #message {
-      position: absolute;
-      top: 70px;
-      left: 10px;
-      right: 10px;
-      z-index: 2000;
-      padding: 10px 14px;
-      background: rgba(255,255,255,0.95);
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 13px;
-      display: none;
-    }
-
-    .popup-title {
-      font-size: 15px;
-      font-weight: bold;
-      margin-bottom: 7px;
-    }
-
-    .popup-line {
-      margin: 4px 0;
-      font-size: 13px;
-    }
-
-    .popup-button {
-      margin-top: 8px;
-      display: inline-block;
-      padding: 6px 10px;
-      background: #4285f4;
-      color: white;
-      border-radius: 5px;
-      text-decoration: none;
-      cursor: pointer;
-    }
-  </style>
+    </style>
 </head>
 
 <body>
 
-<div id="app">
-
-  <div id="toolbar">
-
-    <input
-      id="search"
-      type="text"
-      placeholder="Rechercher une formation, un établissement, une ville..."
-    >
-
-    <button id="reset">
-      Réinitialiser
-    </button>
-
-    <span id="status">
-      En attente des données Grist...
-    </span>
-
-  </div>
-
-  <div id="map"></div>
-
-  <div id="message"></div>
-
+<div id="status">
+    En attente de la sélection du CMQ...
 </div>
 
+<div id="results"></div>
 
-<!-- Leaflet -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Grist -->
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-
 
 <script>
 
-"use strict";
+let records = [];
 
-
-/* ============================================================
-   CONFIGURATION DES COLONNES
-   ============================================================ */
-
-const COL = {
-
-  formation: "Nom de la formation",
-
-  filiere: "Filiére",
-
-  partenaire: "Nom du partenaire",
-
-  cmq: "Nom du CMQ",
-
-  type: "Catégorie établissement",
-
-  adresse: "adresse du partenaire",
-
-  latitude: "LATITUDE_CARTE",
-
-  longitude: "LONGITUDE_CARTE",
-
-  site: "Site internet",
-
-  afficher: "Afficher_sur_carte"
-
-};
-
-
-/* ============================================================
-   VARIABLES
-   ============================================================ */
-
-let allRecords = [];
-
-let displayedRecords = [];
-
-let markers = [];
-
-let currentSearch = "";
-
-
-/* ============================================================
-   INITIALISATION DE LA CARTE
-   ============================================================ */
-
-const map = L.map("map").setView(
-  [46.6, 2.4],
-  6
-);
-
-
-L.tileLayer(
-  "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  {
-    maxZoom: 19,
-
-    attribution:
-      "&copy; OpenStreetMap contributors"
-  }
-).addTo(map);
-
-
-/* Groupe de marqueurs */
-
-const markerLayer =
-  L.layerGroup().addTo(map);
-
-
-/* ============================================================
-   OUTILS
-   ============================================================ */
-
-function normalize(value) {
-
-  return String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-
-}
-
-
-function escapeHtml(value) {
-
-  return String(value ?? "")
-    .replace(/[&<>"']/g, function(char) {
-
-      return {
-
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-
-      }[char];
-
-    });
-
-}
-
-
-function number(value) {
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
-
-    return NaN;
-
-  }
-
-  return Number(
-    String(value)
-      .replace(",", ".")
-      .trim()
-  );
-
-}
-
-
-/* ============================================================
-   MESSAGE
-   ============================================================ */
-
-function showMessage(text) {
-
-  const element =
-    document.getElementById("message");
-
-  element.textContent = text;
-
-  element.style.display = "block";
-
-}
-
-
-function hideMessage() {
-
-  document.getElementById(
-    "message"
-  ).style.display = "none";
-
-}
-
-
-/* ============================================================
-   VERIFICATION AFFICHAGE
-   ============================================================ */
-
-function shouldDisplay(record) {
-
-  const value =
-    record[COL.afficher];
-
-  /*
-   Si la colonne n'existe pas ou est vide,
-   on affiche quand même.
-  */
-
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
-
-    return true;
-
-  }
-
-
-  if (value === true) {
-    return true;
-  }
-
-
-  if (value === 1) {
-    return true;
-  }
-
-
-  const text =
-    normalize(value);
-
-
-  return (
-    text === "oui" ||
-    text === "true" ||
-    text === "1"
-  );
-
-}
-
-
-/* ============================================================
-   RECHERCHE
-   ============================================================ */
-
-function matchesSearch(record) {
-
-  if (!currentSearch) {
-    return true;
-  }
-
-
-  const text = [
-
-    record[COL.formation],
-
-    record[COL.filiere],
-
-    record[COL.partenaire],
-
-    record[COL.cmq],
-
-    record[COL.type],
-
-    record[COL.adresse]
-
-  ].join(" ");
-
-
-  return normalize(text)
-    .includes(currentSearch);
-
-}
-
-
-/* ============================================================
-   POPUP
-   ============================================================ */
-
-function createPopup(record) {
-
-  const formation =
-    record[COL.formation] || "Formation";
-
-
-  let html = "";
-
-
-  html +=
-    '<div class="popup-title">' +
-    escapeHtml(formation) +
-    '</div>';
-
-
-  if (record[COL.partenaire]) {
-
-    html +=
-      '<div class="popup-line">' +
-      '<b>Établissement :</b> ' +
-      escapeHtml(record[COL.partenaire]) +
-      '</div>';
-
-  }
-
-
-  if (record[COL.filiere]) {
-
-    html +=
-      '<div class="popup-line">' +
-      '<b>Filière :</b> ' +
-      escapeHtml(record[COL.filiere]) +
-      '</div>';
-
-  }
-
-
-  if (record[COL.type]) {
-
-    html +=
-      '<div class="popup-line">' +
-      '<b>Type :</b> ' +
-      escapeHtml(record[COL.type]) +
-      '</div>';
-
-  }
-
-
-  if (record[COL.adresse]) {
-
-    html +=
-      '<div class="popup-line">' +
-      '<b>Adresse :</b> ' +
-      escapeHtml(record[COL.adresse]) +
-      '</div>';
-
-  }
-
-
-  if (record[COL.cmq]) {
-
-    html +=
-      '<div class="popup-line">' +
-      '<b>CMQ :</b> ' +
-      escapeHtml(record[COL.cmq]) +
-      '</div>';
-
-  }
-
-
-  if (record[COL.site]) {
-
-    let url =
-      String(record[COL.site]).trim();
-
-
-    if (
-      url &&
-      !/^https?:\/\//i.test(url)
-    ) {
-
-      url =
-        "https://" + url;
-
-    }
-
-
-    if (url) {
-
-      html +=
-        '<div class="popup-line">' +
-        '<a class="popup-button" href="' +
-        escapeHtml(url) +
-        '" target="_blank" rel="noopener">' +
-        'Voir le site' +
-        '</a>' +
-        '</div>';
-
-    }
-
-  }
-
-
-  return html;
-
-}
-
-
-/* ============================================================
-   SELECTION D'UNE LIGNE DANS GRIST
-   ============================================================ */
-
-async function selectGristRecord(record) {
-
-  if (!record || !record.id) {
-    return;
-  }
-
-
-  try {
-
-    await grist.setCursorPos({
-      rowId: record.id
-    });
-
-  }
-
-  catch (error) {
-
-    console.error(
-      "Erreur sélection Grist :",
-      error
-    );
-
-  }
-
-}
-
-
-/* ============================================================
-   AFFICHAGE DES MARQUEURS
-   ============================================================ */
-
-function displayMarkers() {
-
-  markerLayer.clearLayers();
-
-  markers = [];
-
-
-  const bounds = [];
-
-
-  displayedRecords.forEach(
-    function(record) {
-
-      const lat =
-        number(record[COL.latitude]);
-
-
-      const lon =
-        number(record[COL.longitude]);
-
-
-      /*
-       Pas de coordonnées = pas de marqueur.
-      */
-
-      if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lon)
-      ) {
-
-        return;
-
-      }
-
-
-      const marker =
-        L.marker([lat, lon]);
-
-
-      marker.bindPopup(
-        createPopup(record)
-      );
-
-
-      /*
-       Quand l'utilisateur clique sur le
-       marqueur, on sélectionne la ligne
-       correspondante dans Grist.
-      */
-
-      marker.on(
-        "click",
-        function() {
-
-          selectGristRecord(record);
-
-        }
-      );
-
-
-      markerLayer.addLayer(marker);
-
-
-      markers.push(marker);
-
-
-      bounds.push([
-        lat,
-        lon
-      ]);
-
-    }
-  );
-
-
-  /*
-   Zoom automatique.
-  */
-
-  if (bounds.length > 0) {
-
-    map.fitBounds(
-      bounds,
-      {
-        padding: [30, 30],
-        maxZoom: 12
-      }
-    );
-
-  }
-
-}
-
-
-/* ============================================================
-   MISE A JOUR
-   ============================================================ */
-
-function updateMap() {
-
-  displayedRecords =
-    allRecords.filter(
-      function(record) {
-
-        return (
-          shouldDisplay(record) &&
-          matchesSearch(record)
-        );
-
-      }
-    );
-
-
-  displayMarkers();
-
-
-  document.getElementById(
-    "status"
-  ).textContent =
-
-    displayedRecords.length +
-    " établissement(s) affiché(s)";
-
-
-  if (allRecords.length === 0) {
-
-    showMessage(
-      "Aucune donnée reçue de Grist. Vérifie la configuration « Données source » et « Sélectionner par »."
-    );
-
-  }
-
-  else if (displayedRecords.length === 0) {
-
-    showMessage(
-      "Aucun résultat pour cette recherche."
-    );
-
-  }
-
-  else {
-
-    hideMessage();
-
-  }
-
-}
-
-
-/* ============================================================
-   RECEPTION DES DONNEES GRIST
-   ============================================================ */
 
 /*
-   IMPORTANT :
-
-   Grist appelle cette fonction à chaque fois que
-   les données liées au widget changent.
-
-   Donc si tu sélectionnes un CMQ dans
-   « CMQ Personnalisée », les données reçues ici
-   changent automatiquement SI le widget est configuré
-   avec :
-
-       Données source = Carte2_2
-       Sélectionner par = CMQ Personnalisée
+============================================================
+GRIST
+============================================================
 */
-
-grist.onRecords(
-  function(records) {
-
-    console.log(
-      "Données reçues de Grist :",
-      records
-    );
-
-
-    allRecords =
-      Array.isArray(records)
-        ? records
-        : [];
-
-
-    updateMap();
-
-  }
-);
-
-
-/* ============================================================
-   RECHERCHE
-   ============================================================ */
-
-document
-  .getElementById("search")
-  .addEventListener(
-    "input",
-    function(event) {
-
-      currentSearch =
-        normalize(event.target.value);
-
-      updateMap();
-
-    }
-  );
-
-
-/* ============================================================
-   RESET
-   ============================================================ */
-
-document
-  .getElementById("reset")
-  .addEventListener(
-    "click",
-    function() {
-
-      document.getElementById(
-        "search"
-      ).value = "";
-
-      currentSearch = "";
-
-      updateMap();
-
-    }
-  );
-
-
-/* ============================================================
-   INITIALISATION GRIST
-   ============================================================ */
 
 grist.ready({
 
-  /*
-   Permet à ce widget de participer au système
-   de sélection/lien de Grist.
-  */
+    allowSelectBy: true,
 
-  allowSelectBy: true,
-
-  /*
-   Le widget a besoin de lire les données.
-  */
-
-  requiredAccess: "read table"
+    requiredAccess: "read table"
 
 });
 
 
-/* ============================================================
-   RESIZE
-   ============================================================ */
+/*
+============================================================
+RECEPTION DES DONNEES
+============================================================
+*/
 
-window.addEventListener(
-  "resize",
-  function() {
+grist.onRecords(function(data) {
 
-    setTimeout(
-      function() {
-
-        map.invalidateSize();
-
-      },
-      100
+    console.log(
+        "Données reçues de Grist :",
+        data
     );
 
-  }
-);
+    records = data || [];
 
+    afficher();
+
+});
+
+
+/*
+============================================================
+AFFICHAGE
+============================================================
+*/
+
+function afficher() {
+
+    const status =
+        document.getElementById("status");
+
+    const results =
+        document.getElementById("results");
+
+
+    results.innerHTML = "";
+
+
+    if (!records.length) {
+
+        status.textContent =
+            "Aucune donnée sélectionnée.";
+
+        return;
+
+    }
+
+
+    status.textContent =
+        records.length +
+        " ligne(s) reçue(s) de Grist.";
+
+
+    records.forEach(function(row) {
+
+        const element =
+            document.createElement("div");
+
+        element.className = "row";
+
+
+        /*
+        On utilise les données EXISTANTES
+        envoyées par Grist.
+        */
+
+        const formation =
+            row["Nom de la formation"] || "";
+
+
+        const partenaire =
+            row["Nom du partenaire"] || "";
+
+
+        const adresse =
+            row["adresse du partenaire"] || "";
+
+
+        const filiere =
+            row["Filiére"] || "";
+
+
+        const cmq =
+            row["Nom du CMQ"] || "";
+
+
+        element.innerHTML = `
+
+            <div class="title">
+                ${escapeHtml(formation)}
+            </div>
+
+            <div class="info">
+                ${escapeHtml(partenaire)}
+            </div>
+
+            <div class="info">
+                ${escapeHtml(adresse)}
+            </div>
+
+            <div class="info">
+                ${escapeHtml(filiere)}
+            </div>
+
+            <div class="info">
+                CMQ : ${escapeHtml(cmq)}
+            </div>
+
+        `;
+
+
+        /*
+        Cliquer sur une ligne sélectionne
+        la ligne correspondante dans Grist.
+        */
+
+        element.addEventListener(
+            "click",
+            function() {
+
+                if (!row.id) {
+                    return;
+                }
+
+                grist.setCursorPos({
+                    rowId: row.id
+                });
+
+            }
+        );
+
+
+        results.appendChild(element);
+
+    });
+
+}
+
+
+/*
+============================================================
+SECURITE HTML
+============================================================
+*/
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/[&<>"']/g, function(char) {
+
+            return {
+
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+
+            }[char];
+
+        });
+
+}
 
 </script>
 
